@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Track Order | RSR</title><link rel="stylesheet" href="style.css"></head>
+<body><header class="navbar"><a class="brand" href="/"><span class="brand-logo">R</span><span><strong>RECK SHOP</strong><small>Order Tracking</small></span></a><nav><a href="/">Shop</a></nav></header>
+<main class="container narrow">
+<section class="panel"><h1>Track Your Order</h1><p class="muted">Enter the order number and private token, or open the private link you received.</p>
+<div class="two-columns"><div class="form-group"><label>Order Number</label><input id="orderNumber"></div><div class="form-group"><label>Private Token</label><input id="orderToken"></div></div>
+<button id="loadOrder" class="primary-button">Open Order</button><p id="statusMessage" class="message"></p></section>
+<section id="orderPanel" class="panel hidden">
+<div class="order-header"><div><span class="eyebrow">PRIVATE ORDER</span><h2 id="orderTitle"></h2></div><span id="orderStatus" class="status-pill"></span></div>
+<div id="orderAccount" class="roblox-result"></div>
+<div id="orderDetails" class="details-grid"></div>
+<div id="timeline" class="timeline"></div>
+<h3>Private Support Chat</h3><div id="messages" class="chat-box"></div>
+<div class="search-row"><input id="chatInput" placeholder="Type your message"><button id="sendMessage">Send</button></div>
+</section></main><script src="status.js"></script></body></html>

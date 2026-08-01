@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin | RSR</title><link rel="stylesheet" href="style.css"></head>
+<body><header class="navbar"><a class="brand" href="/"><span class="brand-logo">R</span><span><strong>RECK SHOP</strong><small>Admin</small></span></a><nav><a href="/">Shop</a></nav></header>
+<main class="container">
+<section class="panel"><h1>Admin Dashboard</h1><div class="search-row"><input id="adminKey" type="password" placeholder="Enter ADMIN_KEY"><button id="loginAdmin">Open Admin</button></div><p id="adminMessage" class="message"></p></section>
+<div id="adminArea" class="hidden">
+<section class="panel"><div class="section-title"><span>⚙</span><div><h2>Store Settings</h2><p>Change Instant stock and support status.</p></div></div>
+<div class="two-columns"><div class="form-group"><label>Instant Stock</label><input id="stockInput" type="number" min="0"></div><div class="form-group"><label>Support Text</label><input id="supportText"></div></div>
+<label class="confirm"><input id="supportOnline" type="checkbox"> Support Online</label><button id="saveSettings" class="primary-button">Save Settings</button></section>
+<section class="panel"><div class="order-header"><h2>Orders</h2><button id="refreshOrders">Refresh</button></div><div id="ordersList" class="orders-list"></div></section>
+<section id="adminOrderPanel" class="panel hidden"><div class="order-header"><div><span class="eyebrow">SELECTED ORDER</span><h2 id="adminOrderTitle"></h2></div><span id="adminOrderStatus" class="status-pill"></span></div>
+<div id="adminDetails" class="details-grid"></div><a id="receiptLink" target="_blank">Open Receipt</a>
+<div class="status-actions"><button data-status="Approved">Approve</button><button data-status="Processing">Processing</button><button data-status="Ready for Delivery">Ready</button><button data-status="Completed">Complete</button><button data-status="Declined" class="danger">Decline</button></div>
+<h3>Customer Chat</h3><div id="adminMessages" class="chat-box"></div><div class="search-row"><input id="adminChatInput" placeholder="Reply to customer"><button id="adminSend">Send</button></div></section>
+</div></main><script src="admin.js"></script></body></html>
