@@ -56,7 +56,7 @@ function calculate() {
 async function loadSettings() {
   settings = await jsonFetch("/api/settings");
   $("stockDisplay").textContent = `${number(settings.instantStock)} Robux`;
-  $("supportIndicator").textContent = settings.supportOnline ? "● Support Online" : "● Support Offline";
+  $("supportIndicator").textContent = settings.supportOnline ? "● Support Online" : "● Support Away";
   $("supportIndicator").classList.toggle("online", settings.supportOnline);
   $("supportIndicator").title = settings.supportText || "";
 }
@@ -173,4 +173,14 @@ function showError(text) {
   $("submitMessage").textContent = text;
 }
 
-Promise.all([loadSettings()]).then(calculate).catch(error => showError(error.message));
+async function startup(){
+  try{
+    const health = await jsonFetch("/api/health");
+    if(!health.ok) throw new Error("The shop server is not ready.");
+    await loadSettings();
+    calculate();
+  }catch(error){
+    showError(`Connection problem: ${error.message}`);
+  }
+}
+startup();

@@ -1,4 +1,4 @@
-RSR SHOP FRESH V1
+RSR SHOP FRESH V2
 
 This is a clean restart with NO Supabase and NO login system.
 
@@ -33,4 +33,13 @@ Use this version first to prove the shop works. Add a permanent database only af
 
 TEST
 Open /api/health. It should show:
-{"ok":true,"version":"Fresh V1","storage":"local JSON","message":"Server is working."}
+{"ok":true,"version":"Fresh V2","storage":"local JSON","message":"Server is working."}
+
+
+FRESH V2 IMPROVEMENTS
+- Support starts Online by default
+- “Offline” changed to clearer “Away”
+- Added server health check on page startup
+- Added trust cards and marketplace feature strip
+- Improved admin support wording
+- Cleaner connection error messages

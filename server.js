@@ -28,8 +28,8 @@ if (!fs.existsSync(ORDERS_FILE)) fs.writeFileSync(ORDERS_FILE, "[]");
 if (!fs.existsSync(SETTINGS_FILE)) {
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify({
     instantStock: 50000,
-    supportOnline: false,
-    supportText: "Support is currently offline"
+    supportOnline: true,
+    supportText: "Admin support is available"
   }, null, 2));
 }
 
@@ -80,8 +80,8 @@ function saveOrders(orders) {
 function getSettings() {
   return readJson(SETTINGS_FILE, {
     instantStock: 50000,
-    supportOnline: false,
-    supportText: "Support is currently offline"
+    supportOnline: true,
+    supportText: "Admin support is available"
   });
 }
 
@@ -131,7 +131,7 @@ async function sendDiscord(order) {
 app.get("/api/health", (_, res) => {
   res.json({
     ok: true,
-    version: "Fresh V1",
+    version: "Fresh V2",
     storage: "local JSON",
     message: "Server is working."
   });
@@ -404,5 +404,5 @@ app.use((error, _, res, __) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`RSR Shop Fresh V1 running on port ${PORT}`);
+  console.log(`RSR Shop Fresh V2 running on port ${PORT}`);
 });

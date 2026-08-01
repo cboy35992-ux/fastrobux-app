@@ -1,5 +1,5 @@
 {
   "instantStock": 50000,
-  "supportOnline": false,
-  "supportText": "Support is currently offline"
+  "supportOnline": true,
+  "supportText": "Admin support is available"
 }
