@@ -1,0 +1,9 @@
+"use strict";
+const $=id=>document.getElementById(id);
+async function api(url,options={}){const r=await fetch(url,options),t=await r.text();let d;try{d=t?JSON.parse(t):{}}catch{throw new Error(`Invalid server response (${r.status}).`)}if(!r.ok)throw new Error(d.error||`Request failed (${r.status}).`);return d}
+function show(text,error=false){$("authMessage").className=`message ${error?"error":"success"}`;$("authMessage").textContent=text}
+function mode(register){$("loginForm").classList.toggle("hidden",register);$("registerForm").classList.toggle("hidden",!register);$("loginTab").classList.toggle("active",!register);$("registerTab").classList.toggle("active",register);$("authMessage").textContent=""}
+$("loginTab").onclick=()=>mode(false);$("registerTab").onclick=()=>mode(true);
+$("loginForm").onsubmit=async e=>{e.preventDefault();try{const d=await api("/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:$("loginEmail").value.trim(),password:$("loginPassword").value})});localStorage.setItem("rsrSession",d.token);localStorage.setItem("rsrUser",JSON.stringify(d.user));location.href="dashboard.html"}catch(err){show(err.message,true)}};
+$("registerForm").onsubmit=async e=>{e.preventDefault();if($("registerPassword").value!==$("registerConfirm").value)return show("Passwords do not match.",true);try{const d=await api("/api/auth/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({fullName:$("registerName").value.trim(),email:$("registerEmail").value.trim(),password:$("registerPassword").value})});localStorage.setItem("rsrSession",d.token);localStorage.setItem("rsrUser",JSON.stringify(d.user));location.href="dashboard.html"}catch(err){show(err.message,true)}};
+if(localStorage.getItem("rsrSession")) location.href="dashboard.html";

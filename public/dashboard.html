@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dashboard | RSR</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<header class="navbar"><a class="brand" href="/"><span class="brand-logo">R</span><span><strong>RECK SHOP</strong><small>Dashboard</small></span></a><nav><a href="/">Shop</a><button id="logoutButton" class="nav-button">Logout</button></nav></header>
+<main class="container">
+<section class="dashboard-hero"><div><span class="eyebrow">CUSTOMER ACCOUNT</span><h1 id="welcomeName">Welcome</h1><p id="accountEmail" class="muted"></p></div><a class="primary-link" href="/">Create New Order</a></section>
+<section class="stats-grid"><article><span>Total Orders</span><strong id="totalOrders">0</strong></article><article><span>Pending</span><strong id="pendingOrders">0</strong></article><article><span>Completed</span><strong id="completedOrders">0</strong></article></section>
+<section class="panel"><div class="order-header"><div><h2>Recent Transactions</h2><p class="muted">Orders created while logged in appear here.</p></div><button id="refreshDashboard">Refresh</button></div><div id="dashboardOrders" class="orders-list"></div><p id="dashboardMessage" class="message"></p></section>
+</main><script src="dashboard.js"></script>
+</body></html>

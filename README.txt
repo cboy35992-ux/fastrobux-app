@@ -1,4 +1,4 @@
-RSR SHOP FRESH V2
+RSR SHOP FRESH V3 ACCOUNTS
 
 This is a clean restart with NO Supabase and NO login system.
 
@@ -43,3 +43,18 @@ FRESH V2 IMPROVEMENTS
 - Added trust cards and marketplace feature strip
 - Improved admin support wording
 - Cleaner connection error messages
+
+
+FRESH V3 ACCOUNT FEATURES
+- Customer register/login using email and a separate shop password
+- Passwords hashed with bcrypt
+- 30-day local sessions
+- Customer dashboard
+- Recent transaction history
+- Dashboard links to private tracking and support chat
+- Guest checkout remains available
+- Orders appear in dashboard only when submitted while logged in
+
+SECURITY
+Never request or store Roblox passwords.
+This local account system is for initial testing. Render local JSON data can reset after redeployment.

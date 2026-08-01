@@ -1,5 +1,11 @@
 "use strict";
 const $ = id => document.getElementById(id);
+const customerToken = localStorage.getItem("rsrSession");
+const customerUser = JSON.parse(localStorage.getItem("rsrUser") || "null");
+if (customerToken && customerUser && $("accountLink")) {
+  $("accountLink").textContent = "My Dashboard";
+  $("accountLink").href = "dashboard.html";
+}
 
 const methods = {
   ct: { name:"Covered Tax", rate:428.7 },
@@ -151,7 +157,8 @@ $("submitOrder").onclick = async () => {
   button.textContent = "Submitting…";
 
   try {
-    const result = await jsonFetch("/api/orders", { method:"POST", body:form });
+    const headers = customerToken ? { Authorization: `Bearer ${customerToken}` } : {};
+    const result = await jsonFetch("/api/orders", { method:"POST", headers, body:form });
     message.className = "message success";
     message.innerHTML = `Order created: <strong>${result.orderNumber}</strong><br><a href="${result.statusUrl}">Open and save your private tracking page</a>`;
     await loadSettings();

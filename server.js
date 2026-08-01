@@ -5,6 +5,7 @@ require("dotenv").config();
 const express = require("express");
 const multer = require("multer");
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const fs = require("fs");
 const path = require("path");
 
@@ -20,11 +21,15 @@ const DATA_DIR = path.join(ROOT, "data");
 const UPLOADS_DIR = path.join(ROOT, "uploads");
 const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
 const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
+const USERS_FILE = path.join(DATA_DIR, "users.json");
+const SESSIONS_FILE = path.join(DATA_DIR, "sessions.json");
 
 for (const dir of [DATA_DIR, UPLOADS_DIR]) {
   fs.mkdirSync(dir, { recursive: true });
 }
 if (!fs.existsSync(ORDERS_FILE)) fs.writeFileSync(ORDERS_FILE, "[]");
+if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, "[]");
+if (!fs.existsSync(SESSIONS_FILE)) fs.writeFileSync(SESSIONS_FILE, "[]");
 if (!fs.existsSync(SETTINGS_FILE)) {
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify({
     instantStock: 50000,
@@ -128,10 +133,144 @@ async function sendDiscord(order) {
   }
 }
 
+
+function cleanExpiredSessions() {
+  const now = Date.now();
+  const sessions = readJson(SESSIONS_FILE, []).filter(item => new Date(item.expiresAt).getTime() > now);
+  writeJson(SESSIONS_FILE, sessions);
+  return sessions;
+}
+
+function createSession(userId) {
+  const sessions = cleanExpiredSessions();
+  const token = crypto.randomBytes(32).toString("hex");
+  sessions.push({
+    token,
+    userId,
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  });
+  writeJson(SESSIONS_FILE, sessions);
+  return token;
+}
+
+function sessionUser(req) {
+  const auth = String(req.get("authorization") || "");
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token) return null;
+
+  const session = cleanExpiredSessions().find(item => item.token === token);
+  if (!session) return null;
+
+  const user = readJson(USERS_FILE, []).find(item => item.id === session.userId);
+  if (!user) return null;
+
+  return {
+    id: user.id,
+    fullName: user.fullName,
+    email: user.email,
+    createdAt: user.createdAt
+  };
+}
+
+function requireCustomer(req, res, next) {
+  const user = sessionUser(req);
+  if (!user) return res.status(401).json({ error: "Please log in again." });
+  req.customer = user;
+  next();
+}
+
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const fullName = String(req.body.fullName || "").trim().replace(/\s+/g, " ").slice(0, 80);
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
+
+    if (fullName.length < 2) return res.status(400).json({ error: "Enter your full name." });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: "Enter a valid email address." });
+    if (password.length < 8) return res.status(400).json({ error: "Password must contain at least 8 characters." });
+
+    const users = readJson(USERS_FILE, []);
+    if (users.some(item => item.email === email)) {
+      return res.status(409).json({ error: "An account already uses this email." });
+    }
+
+    const user = {
+      id: crypto.randomUUID(),
+      fullName,
+      email,
+      passwordHash: await bcrypt.hash(password, 12),
+      createdAt: new Date().toISOString()
+    };
+
+    users.push(user);
+    writeJson(USERS_FILE, users);
+
+    const token = createSession(user.id);
+    res.status(201).json({
+      token,
+      user: { id: user.id, fullName: user.fullName, email: user.email, createdAt: user.createdAt }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Account registration failed." });
+  }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
+    const user = readJson(USERS_FILE, []).find(item => item.email === email);
+
+    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+      return res.status(401).json({ error: "Incorrect email or password." });
+    }
+
+    const token = createSession(user.id);
+    res.json({
+      token,
+      user: { id: user.id, fullName: user.fullName, email: user.email, createdAt: user.createdAt }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Login failed." });
+  }
+});
+
+app.get("/api/auth/me", requireCustomer, (req, res) => {
+  res.json({ user: req.customer });
+});
+
+app.post("/api/auth/logout", requireCustomer, (req, res) => {
+  const token = String(req.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  const sessions = cleanExpiredSessions().filter(item => item.token !== token);
+  writeJson(SESSIONS_FILE, sessions);
+  res.json({ ok: true });
+});
+
+app.get("/api/customer/orders", requireCustomer, (req, res) => {
+  const orders = getOrders()
+    .filter(item => item.customerId === req.customer.id)
+    .map(item => ({
+      orderNumber: item.orderNumber,
+      token: item.token,
+      status: item.status,
+      method: item.method,
+      amount: item.amount,
+      payment: item.payment,
+      username: item.username,
+      displayName: item.displayName,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt
+    }));
+  res.json({ orders });
+});
+
 app.get("/api/health", (_, res) => {
   res.json({
     ok: true,
-    version: "Fresh V2",
+    version: "Fresh V3",
     storage: "local JSON",
     message: "Server is working."
   });
@@ -181,6 +320,7 @@ app.post("/api/orders", upload.single("receipt"), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: "Upload your receipt." });
 
     const body = req.body;
+    const customer = sessionUser(req);
     const amount = Math.floor(Number(body.amount));
     const payment = Number(body.payment);
 
@@ -214,6 +354,8 @@ app.post("/api/orders", upload.single("receipt"), async (req, res) => {
 
     const order = {
       id: crypto.randomUUID(),
+      customerId: customer?.id || null,
+      customerEmail: customer?.email || "",
       orderNumber: orderNumber(),
       token: crypto.randomBytes(24).toString("hex"),
       status: "Pending Payment Review",
@@ -404,5 +546,5 @@ app.use((error, _, res, __) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`RSR Shop Fresh V2 running on port ${PORT}`);
+  console.log(`RSR Shop Fresh V3 running on port ${PORT}`);
 });
