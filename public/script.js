@@ -1,193 +1,39 @@
 "use strict";
-const $ = id => document.getElementById(id);
-const customerToken = localStorage.getItem("rsrSession");
-const customerUser = JSON.parse(localStorage.getItem("rsrUser") || "null");
-if (customerToken && customerUser && $("accountLink")) {
-  $("accountLink").textContent = "My Dashboard";
-  $("accountLink").href = "dashboard.html";
+const $=id=>document.getElementById(id);
+const token=localStorage.getItem("rsrSession");
+const user=JSON.parse(localStorage.getItem("rsrUser")||"null");
+let cfg=null,selectedMethod="ct",selectedRoblox=null,discount=0,appliedPromo="";
+const peso=n=>new Intl.NumberFormat("en-PH",{style:"currency",currency:"PHP"}).format(Number(n)||0);
+const num=n=>Number(n||0).toLocaleString();
+async function api(url,options={}){options.headers={...(options.headers||{})};if(token)options.headers.Authorization=`Bearer ${token}`;const r=await fetch(url,options),t=await r.text();let d;try{d=t?JSON.parse(t):{}}catch{throw new Error(`Invalid server response (${r.status}).`)}if(!r.ok)throw new Error(d.error||`Request failed (${r.status}).`);return d}
+if(token&&user){$("accountLink").textContent="My Dashboard";$("accountLink").href="dashboard.html"}
+function paymentMethod(){return document.querySelector('input[name="paymentMethod"]:checked')?.value||"GCash"}
+function calc(){
+  const amount=Math.floor(Number($("amount").value)||0);let receive=amount,pass=0;
+  if(selectedMethod==="ct")pass=Math.ceil(amount/.7);
+  if(selectedMethod==="nct"){pass=amount;receive=Math.floor(amount*.7)}
+  const subtotal=amount/1000*(cfg?.rates?.[selectedMethod]||0),total=Math.max(0,subtotal-discount);
+  $("methodDisplay").textContent={ct:"Covered Tax",nct:"Not Covered Tax",instant:"Robux Instant",gifting:"In-Game Gifting"}[selectedMethod];
+  $("receiveDisplay").textContent=`${num(receive)} Robux`;$("passDisplay").textContent=`${num(pass)} Robux`;
+  $("passRow").classList.toggle("hidden",!["ct","nct"].includes(selectedMethod));
+  $("subtotalDisplay").textContent=peso(subtotal);$("discountDisplay").textContent=`−${peso(discount)}`;
+  $("totalDisplay").textContent=peso(total);$("exactAmount").textContent=peso(total);
+  return{amount,receive,pass,subtotal,total}
 }
-
-const methods = {
-  ct: { name:"Covered Tax", rate:428.7 },
-  nct: { name:"Not Covered Tax", rate:300 },
-  instant: { name:"Robux Instant", rate:450 },
-  gifting: { name:"In-Game Gifting", rate:300 }
-};
-
-let selectedMethod = "ct";
-let selectedRoblox = null;
-let settings = { instantStock: 0, supportOnline:false, supportText:"" };
-
-const money = value => new Intl.NumberFormat("en-PH",{style:"currency",currency:"PHP"}).format(value);
-const number = value => Number(value||0).toLocaleString();
-
-async function jsonFetch(url, options={}) {
-  const response = await fetch(url, options);
-  const text = await response.text();
-  let data;
-  try { data = text ? JSON.parse(text) : {}; }
-  catch { throw new Error(`Server returned an invalid response (${response.status}).`); }
-  if (!response.ok) throw new Error(data.error || `Request failed (${response.status}).`);
-  return data;
+async function start(){
+  cfg=await api("/api/settings");
+  $("supportStatus").textContent=cfg.supportOnline?"● Support Online":"● Support Away";$("supportStatus").classList.toggle("online",cfg.supportOnline);
+  $("stockDisplay").textContent=`${num(cfg.instantStock)} Robux`;
+  [["rateCt","ct"],["rateNct","nct"],["rateInstant","instant"],["rateGifting","gifting"]].forEach(([id,key])=>$(id).textContent=`₱${cfg.rates[key].toLocaleString("en-PH")} / 1,000`);
+  calc();loadReviews();updatePayment();
 }
-
-function paymentMethod() {
-  return document.querySelector('input[name="paymentMethod"]:checked')?.value || "GCash";
-}
-
-function calculate() {
-  const amount = Math.floor(Number($("robuxAmount").value) || 0);
-  let receive = amount;
-  let pass = 0;
-
-  if (selectedMethod === "ct") {
-    pass = Math.ceil(amount / 0.7);
-  } else if (selectedMethod === "nct") {
-    pass = amount;
-    receive = Math.floor(amount * 0.7);
-  }
-
-  const payment = amount / 1000 * methods[selectedMethod].rate;
-
-  $("methodDisplay").textContent = methods[selectedMethod].name;
-  $("receiveDisplay").textContent = `${number(receive)} Robux`;
-  $("passDisplay").textContent = `${number(pass)} Robux`;
-  $("paymentDisplay").textContent = money(payment);
-  $("paymentAmountDisplay").textContent = money(payment);
-  $("gamepassPriceRow").classList.toggle("hidden", !["ct","nct"].includes(selectedMethod));
-
-  return { amount, receive, pass, payment };
-}
-
-async function loadSettings() {
-  settings = await jsonFetch("/api/settings");
-  $("stockDisplay").textContent = `${number(settings.instantStock)} Robux`;
-  $("supportIndicator").textContent = settings.supportOnline ? "● Support Online" : "● Support Away";
-  $("supportIndicator").classList.toggle("online", settings.supportOnline);
-  $("supportIndicator").title = settings.supportText || "";
-}
-
-document.querySelectorAll(".method-card").forEach(button => {
-  button.onclick = () => {
-    selectedMethod = button.dataset.method;
-    document.querySelectorAll(".method-card").forEach(item => item.classList.toggle("active", item === button));
-    $("giftingFields").classList.toggle("hidden", selectedMethod !== "gifting");
-    calculate();
-  };
-});
-
-document.querySelectorAll(".quick-amounts button").forEach(button => {
-  button.onclick = () => {
-    $("robuxAmount").value = button.dataset.amount;
-    calculate();
-  };
-});
-
-$("robuxAmount").oninput = calculate;
-
-$("searchRoblox").onclick = async () => {
-  const button = $("searchRoblox");
-  button.disabled = true;
-  button.textContent = "Searching…";
-  $("robloxResult").classList.add("hidden");
-  selectedRoblox = null;
-
-  try {
-    const user = await jsonFetch(`/api/roblox/search?username=${encodeURIComponent($("usernameSearch").value.trim())}`);
-    selectedRoblox = user;
-    $("robloxAvatar").src = user.avatarUrl;
-    $("robloxDisplayName").textContent = user.displayName;
-    $("robloxUsername").textContent = `@${user.username}`;
-    $("robloxResult").classList.remove("hidden");
-  } catch (error) {
-    alert(error.message);
-  } finally {
-    button.disabled = false;
-    button.textContent = "Search";
-  }
-};
-
-document.querySelectorAll('input[name="paymentMethod"]').forEach(input => {
-  input.onchange = () => {
-    document.querySelectorAll(".payment-card").forEach(card => card.classList.toggle("active", card.querySelector("input").checked));
-    const selected = paymentMethod();
-    $("paymentQr").src = selected === "GCash" ? "images/gcash-qr.png" : "images/gotyme-qr.png";
-    $("paymentTitle").textContent = selected === "GCash" ? "Pay through GCash" : "Pay through GoTyme Bank";
-  };
-});
-
-$("submitOrder").onclick = async () => {
-  const message = $("submitMessage");
-  message.className = "message";
-  message.textContent = "";
-
-  const calculation = calculate();
-  const receipt = $("paymentReceipt").files[0];
-
-  if (!selectedRoblox) return showError("Search and select your Roblox account first.");
-  if (calculation.amount <= 0) return showError("Enter a valid Robux amount.");
-  if (selectedMethod === "instant" && calculation.amount < 10) return showError("Instant minimum is 10 Robux.");
-  if (selectedMethod === "instant" && calculation.amount > settings.instantStock) return showError("Not enough Instant stock.");
-  if (selectedMethod === "gifting" && (!$("gameName").value.trim() || !$("itemName").value.trim())) return showError("Enter the game and item name.");
-  if (!$("senderName").value.trim()) return showError("Enter the sender name.");
-  if ($("referenceNumber").value.trim().length < 5) return showError("Enter a valid reference number.");
-  if (!receipt) return showError("Upload the payment receipt.");
-  if (!$("confirmInformation").checked) return showError("Confirm that the information is correct.");
-
-  const form = new FormData();
-  form.append("method", methods[selectedMethod].name);
-  form.append("taxOption", selectedMethod === "ct" ? "Covered Tax" : selectedMethod === "nct" ? "Not Covered Tax" : "N/A");
-  form.append("amount", calculation.amount);
-  form.append("receiveAmount", calculation.receive);
-  form.append("requiredPassPrice", calculation.pass);
-  form.append("payment", calculation.payment.toFixed(2));
-  form.append("paymentMethod", paymentMethod());
-  form.append("senderName", $("senderName").value.trim());
-  form.append("referenceNumber", $("referenceNumber").value.trim());
-  form.append("robloxUserId", selectedRoblox.userId);
-  form.append("username", selectedRoblox.username);
-  form.append("robloxDisplayName", selectedRoblox.displayName);
-  form.append("robloxAvatarUrl", selectedRoblox.avatarUrl);
-  form.append("gameName", $("gameName").value.trim());
-  form.append("itemName", $("itemName").value.trim());
-  form.append("receipt", receipt);
-
-  const button = $("submitOrder");
-  button.disabled = true;
-  button.textContent = "Submitting…";
-
-  try {
-    const headers = customerToken ? { Authorization: `Bearer ${customerToken}` } : {};
-    const result = await jsonFetch("/api/orders", { method:"POST", headers, body:form });
-    message.className = "message success";
-    message.innerHTML = `Order created: <strong>${result.orderNumber}</strong><br><a href="${result.statusUrl}">Open and save your private tracking page</a>`;
-    await loadSettings();
-  } catch (error) {
-    showError(error.message);
-  } finally {
-    button.disabled = false;
-    button.textContent = "Submit Order";
-  }
-
-  function showError(text) {
-    message.className = "message error";
-    message.textContent = text;
-  }
-};
-
-function showError(text) {
-  $("submitMessage").className = "message error";
-  $("submitMessage").textContent = text;
-}
-
-async function startup(){
-  try{
-    const health = await jsonFetch("/api/health");
-    if(!health.ok) throw new Error("The shop server is not ready.");
-    await loadSettings();
-    calculate();
-  }catch(error){
-    showError(`Connection problem: ${error.message}`);
-  }
-}
-startup();
+document.querySelectorAll(".method-card").forEach(b=>b.onclick=()=>{selectedMethod=b.dataset.method;discount=0;appliedPromo="";$("promoCode").value="";$("promoMessage").textContent="";document.querySelectorAll(".method-card").forEach(x=>x.classList.toggle("active",x===b));$("giftingFields").classList.toggle("hidden",selectedMethod!=="gifting");calc()});
+document.querySelectorAll(".quick button").forEach(b=>b.onclick=()=>{$("amount").value=b.dataset.amount;discount=0;appliedPromo="";calc()});$("amount").oninput=()=>{discount=0;appliedPromo="";calc()};
+$("searchRoblox").onclick=async()=>{const b=$("searchRoblox");b.disabled=true;b.textContent="Searching…";try{selectedRoblox=await api(`/api/roblox/search?username=${encodeURIComponent($("usernameSearch").value.trim())}`);$("robloxAvatar").src=selectedRoblox.avatarUrl;$("robloxDisplayName").textContent=selectedRoblox.displayName;$("robloxUsername").textContent=`@${selectedRoblox.username}`;$("robloxUserId").textContent=`User ID: ${selectedRoblox.userId}`;$("robloxResult").classList.remove("hidden")}catch(e){alert(e.message)}finally{b.disabled=false;b.textContent="Search"}};
+$("applyPromo").onclick=async()=>{if(!token)return location.href="auth.html";try{const c=calc(),d=await api("/api/promo/preview",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:$("promoCode").value.trim(),subtotal:c.subtotal})});discount=d.discount||0;appliedPromo=d.code||"";$("promoMessage").className="message success";$("promoMessage").textContent=`Promo applied: −${peso(discount)}`;calc()}catch(e){discount=0;appliedPromo="";$("promoMessage").className="message error";$("promoMessage").textContent=e.message;calc()}};
+function updatePayment(){document.querySelectorAll(".payment-card").forEach(c=>c.classList.toggle("active",c.querySelector("input").checked));const method=paymentMethod();const local=method==="GCash"||method==="GoTyme Bank";$("paymentQr").classList.toggle("hidden",!local);if(method==="GCash"){$("paymentQr").src="images/gcash-qr.png";$("paymentTitle").textContent="Pay through GCash";$("paymentInstructions").textContent="Scan the QR and pay the exact amount."}else if(method==="GoTyme Bank"){$("paymentQr").src="images/gotyme-qr.png";$("paymentTitle").textContent="Pay through GoTyme Bank";$("paymentInstructions").textContent="Scan the QR using an InstaPay-supported app."}else{$("paymentTitle").textContent=`Pay through ${method}`;const map={PayPal:cfg?.paymentDetails?.paypalEmail,Wise:cfg?.paymentDetails?.wiseDetails,Payoneer:cfg?.paymentDetails?.payoneerDetails};$("paymentInstructions").textContent=map[method]||`Contact support for the current ${method} payment details before paying.`}}
+document.querySelectorAll('input[name="paymentMethod"]').forEach(i=>i.onchange=updatePayment);
+$("submitOrder").onclick=async()=>{const msg=$("submitMessage");msg.className="message";msg.textContent="";if(!token){msg.className="message error";msg.innerHTML='Please <a href="auth.html">log in or register</a> before ordering.';return}const c=calc(),receipt=$("receipt").files[0];if(!selectedRoblox)return fail("Search and select the Roblox account.");if(c.amount<=0)return fail("Enter a valid amount.");if(selectedMethod==="instant"&&c.amount<10)return fail("Instant minimum is 10 Robux.");if(selectedMethod==="instant"&&c.amount>cfg.instantStock)return fail("Not enough Instant stock.");if(selectedMethod==="gifting"&&(!$("gameName").value.trim()||!$("itemName").value.trim()))return fail("Enter the game and item name.");if(!$("senderName").value.trim())return fail("Enter the sender name.");if($("referenceNumber").value.trim().length<5)return fail("Enter a valid payment reference.");if(!receipt)return fail("Upload the receipt.");if(!$("confirm").checked)return fail("Confirm the order information.");const form=new FormData();Object.entries({methodKey:selectedMethod,amount:c.amount,promoCode:appliedPromo,paymentMethod:paymentMethod(),senderName:$("senderName").value.trim(),referenceNumber:$("referenceNumber").value.trim(),robloxUserId:selectedRoblox.userId,username:selectedRoblox.username,robloxDisplayName:selectedRoblox.displayName,robloxAvatarUrl:selectedRoblox.avatarUrl,gameName:$("gameName").value.trim(),itemName:$("itemName").value.trim()}).forEach(([k,v])=>form.append(k,v));form.append("receipt",receipt);const b=$("submitOrder");b.disabled=true;b.textContent="Submitting…";try{const d=await api("/api/orders",{method:"POST",body:form});msg.className="message success";msg.innerHTML=`Order created: <b>${d.orderNumber}</b><br><a href="dashboard.html">Open your dashboard</a>`;cfg=await api("/api/settings");$("stockDisplay").textContent=`${num(cfg.instantStock)} Robux`}catch(e){fail(e.message)}finally{b.disabled=false;b.textContent="Submit Order"}function fail(t){msg.className="message error";msg.textContent=t}};
+async function loadReviews(){try{const d=await api("/api/reviews");$("reviews").innerHTML=d.reviews.length?d.reviews.map(r=>`<article class="review-card"><div class="stars">${"★".repeat(r.rating)}${"☆".repeat(5-r.rating)}</div><p>${escapeHtml(r.comment)}</p><b>${escapeHtml(r.full_name)}</b><small class="muted">${escapeHtml(r.method)}</small></article>`).join(""):'<p class="muted">No published reviews yet.</p>'}catch{$("reviews").innerHTML='<p class="muted">Reviews are temporarily unavailable.</p>'}}
+function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+start().catch(e=>{$("submitMessage").className="message error";$("submitMessage").textContent=`Connection problem: ${e.message}`});

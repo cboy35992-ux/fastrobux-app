@@ -1,142 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Reck Shop Robux | RSR</title>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Reck Shop | Tracked Roblox Digital Orders</title>
+  <meta name="description" content="Tracked Roblox-related digital orders with customer accounts, private order status, receipt verification and support chat.">
+  <meta name="robots" content="index,follow">
+  <meta property="og:title" content="Reck Shop">
+  <meta property="og:description" content="Tracked digital orders with customer accounts and private support.">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="/">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="navbar">
-  <a class="brand" href="/"><span class="brand-logo">R</span><span><strong>RECK SHOP</strong><small>Fresh V2</small></span></a>
-  <nav>
-    <span id="supportIndicator" class="support-indicator online">● Support Online</span>
-    <a href="status.html">Track Order</a>
-    <a id="accountLink" href="auth.html">Login / Register</a>
-    <a href="admin.html">Admin</a>
-  </nav>
+  <a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>V5 Full Suite</small></span></a>
+  <nav><span id="supportStatus" class="support online">● Support Online</span><a href="faq.html">FAQ</a><a id="accountLink" href="auth.html">Login / Register</a><a href="admin.html">Admin</a></nav>
 </header>
-
 <main class="container">
-  <section class="announcement-bar">
-      <span>🟢 Live order support</span>
-      <span>🔐 Private tracking links</span>
-      <span>⚡ Instant stock updates</span>
-    </section>
-    <section class="hero">
-    <span class="eyebrow">FAST DIGITAL ORDERS</span>
-    <h1>Buy Robux with a simple, reliable order system.</h1>
-    <p>No account required. Search your Roblox username, choose a method, upload your receipt, and save your private tracking link.</p>
+  <section class="hero">
+    <span class="eyebrow">SECURE ORDER WORKFLOW</span>
+    <h1>Buy through a tracked order—not through chat screenshots.</h1>
+    <p>Create an account, verify the correct Roblox profile, choose local or international payment, upload a receipt, and track every status update.</p>
+    <div class="hero-actions"><a class="button primary" href="auth.html">Create Account</a><a class="button secondary" href="#shop">View Methods</a></div>
   </section>
 
   <section class="trust-grid">
-    <article><strong>Secure Order Tracking</strong><span>Each customer receives a private order number and token.</span></article>
-    <article><strong>Real Roblox Lookup</strong><span>Verify the correct username and avatar before ordering.</span></article>
-    <article><strong>Admin Review</strong><span>Payment receipts are manually checked before approval.</span></article>
+    <article><b>Roblox Profile Check</b><span>Confirm username, display name, avatar and user ID.</span></article>
+    <article><b>Private Receipts</b><span>Receipt files are available only to the customer and administrator.</span></article>
+    <article><b>Order Timeline</b><span>Track pending, approved, processing and completed stages.</span></article>
+    <article><b>Customer Support</b><span>Every order has private customer-to-admin messaging.</span></article>
   </section>
 
-  <section class="panel">
-    <div class="section-title"><span>1</span><div><h2>Choose Purchase Method</h2><p>Select the delivery method and rate.</p></div></div>
+  <section id="shop" class="panel">
+    <div class="section-title"><span>1</span><div><h2>Choose an Order Method</h2><p>Rates are loaded from the administrator settings.</p></div></div>
     <div class="method-grid">
-      <button class="method-card active" data-method="ct">
-        <b>🛡️ Covered Tax</b>
-        <p>Customer receives the full selected Robux amount.</p>
-        <strong>₱428.70 / 1,000</strong>
-      </button>
-      <button class="method-card" data-method="nct">
-        <b>💸 Not Covered Tax</b>
-        <p>Customer receives about 70% of the gamepass price.</p>
-        <strong>₱300 / 1,000</strong>
-      </button>
-      <button class="method-card" data-method="instant">
-        <b>⚡ Robux Instant</b>
-        <p>Minimum 10 Robux. Subject to available stock.</p>
-        <strong>₱450 / 1,000</strong>
-      </button>
-      <button class="method-card" data-method="gifting">
-        <b>🎁 In-Game Gifting</b>
-        <p>Use private order chat to confirm the game and item.</p>
-        <strong>₱300 / 1,000</strong>
-      </button>
+      <button class="method-card active" data-method="ct"><b>🛡️ Covered Tax</b><p>Receive the full selected amount.</p><strong id="rateCt">Loading…</strong></button>
+      <button class="method-card" data-method="nct"><b>💸 Not Covered Tax</b><p>Receive approximately 70% of the gamepass price.</p><strong id="rateNct">Loading…</strong></button>
+      <button class="method-card" data-method="instant"><b>⚡ Robux Instant</b><p>Minimum 10. Uses temporary stock reservation.</p><strong id="rateInstant">Loading…</strong></button>
+      <button class="method-card" data-method="gifting"><b>🎁 In-Game Gifting</b><p>Confirm the game and item through private chat.</p><strong id="rateGifting">Loading…</strong></button>
     </div>
   </section>
 
   <section class="panel">
-    <div class="section-title"><span>2</span><div><h2>Create Your Order</h2><p>Search and confirm the correct Roblox account.</p></div></div>
+    <div class="section-title"><span>2</span><div><h2>Verify the Roblox Account</h2><p>Search the exact username before entering the order amount.</p></div></div>
+    <div class="search-row"><input id="usernameSearch" placeholder="Exact Roblox username"><button id="searchRoblox">Search</button></div>
+    <small class="muted">Never enter a Roblox password, verification code or cookie.</small>
+    <div id="robloxResult" class="roblox-result hidden"><img id="robloxAvatar"><div><b id="robloxDisplayName"></b><span id="robloxUsername"></span><small id="robloxUserId"></small></div><span class="verified">Selected ✓</span></div>
 
-    <div class="form-group">
-      <label for="usernameSearch">Roblox Username</label>
-      <div class="search-row">
-        <input id="usernameSearch" placeholder="Exact Roblox username">
-        <button id="searchRoblox" type="button">Search</button>
-      </div>
-      <small>Never enter your Roblox password.</small>
+    <div id="giftingFields" class="two-columns hidden">
+      <label>Game Name<input id="gameName" placeholder="Example: Adopt Me"></label>
+      <label>Item Name<input id="itemName" placeholder="Exact item name"></label>
     </div>
 
-    <div id="robloxResult" class="roblox-result hidden">
-      <img id="robloxAvatar" alt="Roblox avatar">
-      <div><strong id="robloxDisplayName"></strong><span id="robloxUsername"></span></div>
-      <span class="verified">Selected ✓</span>
-    </div>
+    <label>Desired Robux Amount<input id="amount" type="number" min="1" placeholder="Example: 1000"></label>
+    <div class="quick"><button data-amount="100">100</button><button data-amount="500">500</button><button data-amount="1000">1,000</button><button data-amount="5000">5,000</button><button data-amount="10000">10,000</button></div>
 
-    <div id="giftingFields" class="hidden two-columns">
-      <div class="form-group"><label for="gameName">Game Name</label><input id="gameName" placeholder="Example: Adopt Me"></div>
-      <div class="form-group"><label for="itemName">Item Name</label><input id="itemName" placeholder="Exact item name"></div>
-    </div>
-
-    <div class="form-group">
-      <label for="robuxAmount">Desired Robux Amount</label>
-      <input id="robuxAmount" type="number" min="1" placeholder="Example: 1000">
-    </div>
-
-    <div class="quick-amounts">
-      <button data-amount="100">100</button><button data-amount="500">500</button>
-      <button data-amount="1000">1,000</button><button data-amount="5000">5,000</button>
-      <button data-amount="10000">10,000</button>
-    </div>
+    <label>Promo Code <div class="search-row"><input id="promoCode" placeholder="Optional"><button id="applyPromo">Apply</button></div></label>
+    <p id="promoMessage" class="message"></p>
 
     <div class="calculation">
-      <div><span>Method</span><strong id="methodDisplay">Covered Tax</strong></div>
-      <div><span>Customer Receives</span><strong id="receiveDisplay">0 Robux</strong></div>
-      <div id="gamepassPriceRow"><span>Required Gamepass Price</span><strong id="passDisplay">0 Robux</strong></div>
-      <div><span>Available Instant Stock</span><strong id="stockDisplay">Loading…</strong></div>
-      <div class="total"><span>Total Payment</span><strong id="paymentDisplay">₱0.00</strong></div>
+      <div><span>Method</span><b id="methodDisplay">Covered Tax</b></div>
+      <div><span>Customer Receives</span><b id="receiveDisplay">0 Robux</b></div>
+      <div id="passRow"><span>Required Gamepass Price</span><b id="passDisplay">0 Robux</b></div>
+      <div><span>Instant Stock Available</span><b id="stockDisplay">Loading…</b></div>
+      <div><span>Subtotal</span><b id="subtotalDisplay">₱0.00</b></div>
+      <div><span>Discount</span><b id="discountDisplay">−₱0.00</b></div>
+      <div class="total"><span>Total Payment</span><b id="totalDisplay">₱0.00</b></div>
     </div>
   </section>
 
   <section class="panel">
-    <div class="section-title"><span>3</span><div><h2>Payment and Receipt</h2><p>Select the payment QR and upload proof.</p></div></div>
-
-    <div class="payment-methods">
-      <label class="payment-card active"><input type="radio" name="paymentMethod" value="GCash" checked><b>GCash / InstaPay</b></label>
-      <label class="payment-card"><input type="radio" name="paymentMethod" value="GoTyme Bank"><b>GoTyme / InstaPay</b></label>
+    <div class="section-title"><span>3</span><div><h2>Choose Payment and Upload Receipt</h2><p>Philippine and international methods are available.</p></div></div>
+    <div class="payment-grid">
+      <label class="payment-card active"><input type="radio" name="paymentMethod" value="GCash" checked><b>GCash / InstaPay</b><span>Philippines</span></label>
+      <label class="payment-card"><input type="radio" name="paymentMethod" value="GoTyme Bank"><b>GoTyme / InstaPay</b><span>Philippines</span></label>
+      <label class="payment-card"><input type="radio" name="paymentMethod" value="PayPal"><b>PayPal</b><span>International</span></label>
+      <label class="payment-card"><input type="radio" name="paymentMethod" value="Wise"><b>Wise</b><span>International</span></label>
+      <label class="payment-card"><input type="radio" name="paymentMethod" value="Payoneer"><b>Payoneer</b><span>International</span></label>
     </div>
-
-    <div class="qr-layout">
+    <div class="payment-layout">
       <img id="paymentQr" src="images/gcash-qr.png" alt="Payment QR">
-      <div>
-        <h3 id="paymentTitle">Pay through GCash</h3>
-        <p>Pay the exact amount shown, save the receipt, and upload it below.</p>
-        <div class="amount-box"><span>Exact Amount</span><strong id="paymentAmountDisplay">₱0.00</strong></div>
-      </div>
+      <div><h3 id="paymentTitle">Pay through GCash</h3><p id="paymentInstructions">Scan the QR and pay the exact amount.</p><div class="amount-box"><span>Exact Amount</span><b id="exactAmount">₱0.00</b></div></div>
     </div>
-
     <div class="two-columns">
-      <div class="form-group"><label for="senderName">Sender Name</label><input id="senderName" placeholder="Name used for payment"></div>
-      <div class="form-group"><label for="referenceNumber">Reference Number</label><input id="referenceNumber" placeholder="Payment reference"></div>
+      <label>Sender Name<input id="senderName" placeholder="Name used for payment"></label>
+      <label>Reference Number<input id="referenceNumber" placeholder="Payment reference"></label>
     </div>
-
-    <div class="form-group">
-      <label for="paymentReceipt">Payment Receipt</label>
-      <input id="paymentReceipt" type="file" accept="image/png,image/jpeg">
-    </div>
-
-    <label class="confirm"><input id="confirmInformation" type="checkbox"> I confirm the Roblox account and payment details are correct.</label>
-    <button id="submitOrder" class="primary-button">Submit Order</button>
+    <label>Payment Receipt<input id="receipt" type="file" accept="image/png,image/jpeg"></label>
+    <label class="confirm"><input id="confirm" type="checkbox"> I confirm the Roblox account and payment information are correct.</label>
+    <button id="submitOrder" class="button primary full">Submit Order</button>
     <p id="submitMessage" class="message"></p>
   </section>
-</main>
 
+  <section class="panel">
+    <div class="section-title"><span>★</span><div><h2>Verified Customer Reviews</h2><p>Only completed orders can submit reviews.</p></div></div>
+    <div id="reviews" class="review-grid"><p class="muted">Loading reviews…</p></div>
+  </section>
+</main>
+<footer><span>© 2026 Reck Shop</span><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="refund.html">Refund Policy</a><span>Not affiliated with Roblox Corporation.</span></footer>
 <script src="script.js"></script>
-</body>
-</html>
+</body></html>
