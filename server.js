@@ -23,6 +23,13 @@ const ALLOW_DEV_EMAIL_LINKS = String(process.env.ALLOW_DEV_EMAIL_LINKS || "false
 const REQUIRE_EMAIL_VERIFICATION = String(process.env.REQUIRE_EMAIL_VERIFICATION || "false").toLowerCase() === "true";
 const SESSION_DAYS = Math.max(1, Number(process.env.SESSION_DAYS) || 30);
 const RESERVATION_MINUTES = Math.max(5, Number(process.env.RESERVATION_MINUTES) || 60);
+const SHORT_SESSION_HOURS = Math.max(1, Number(process.env.SHORT_SESSION_HOURS) || 12);
+const GOOGLE_CLIENT_ID = String(process.env.GOOGLE_CLIENT_ID || "");
+const GOOGLE_CLIENT_SECRET = String(process.env.GOOGLE_CLIENT_SECRET || "");
+const FACEBOOK_APP_ID = String(process.env.FACEBOOK_APP_ID || "");
+const FACEBOOK_APP_SECRET = String(process.env.FACEBOOK_APP_SECRET || "");
+const OAUTH_ENABLED_GOOGLE = Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
+const OAUTH_ENABLED_FACEBOOK = Boolean(FACEBOOK_APP_ID && FACEBOOK_APP_SECRET);
 
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, "public");
@@ -65,6 +72,15 @@ CREATE TABLE IF NOT EXISTS email_tokens (
   expires_at TEXT NOT NULL,
   created_at TEXT NOT NULL,
   FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS oauth_states (
+  state_hash TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  return_to TEXT NOT NULL,
+  remember_me INTEGER NOT NULL DEFAULT 1,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS settings (
@@ -215,6 +231,21 @@ CREATE INDEX IF NOT EXISTS idx_site_events_type ON site_events(event_type, creat
 
 `);
 
+
+
+// V11: optional social-login identity columns.
+const v11UserColumns = new Set(db.prepare("PRAGMA table_info(users)").all().map(c=>c.name));
+for (const [column,type] of [
+  ["google_id","TEXT"],
+  ["facebook_id","TEXT"],
+  ["auth_provider","TEXT NOT NULL DEFAULT 'password'"],
+  ["last_login_at","TEXT"]
+]) {
+  if (!v11UserColumns.has(column)) db.exec(`ALTER TABLE users ADD COLUMN ${column} ${type}`);
+}
+db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id) WHERE google_id IS NOT NULL");
+db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_facebook_id ON users(facebook_id) WHERE facebook_id IS NOT NULL");
+db.exec("CREATE INDEX IF NOT EXISTS idx_oauth_states_expiry ON oauth_states(expires_at)");
 
 // V10: operational review and fraud-protection fields.
 const v10OrderColumns = new Set(db.prepare("PRAGMA table_info(orders)").all().map(c=>c.name));
@@ -445,10 +476,12 @@ function makeOrderNumber() {
   }
   return `RSR-${prefix}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 }
-function createSession(userId) {
+function createSession(userId, rememberMe=true) {
   const raw = crypto.randomBytes(32).toString("hex");
+  const durationMs = rememberMe ? SESSION_DAYS*86400000 : SHORT_SESSION_HOURS*3600000;
   db.prepare("INSERT INTO sessions(token_hash,user_id,expires_at,created_at) VALUES (?,?,?,?)")
-    .run(hashToken(raw), userId, new Date(Date.now()+SESSION_DAYS*86400000).toISOString(), nowIso());
+    .run(hashToken(raw), userId, new Date(Date.now()+durationMs).toISOString(), nowIso());
+  db.prepare("UPDATE users SET last_login_at=? WHERE id=?").run(nowIso(), userId);
   return raw;
 }
 function getSessionUser(req) {
@@ -562,6 +595,44 @@ async function sendEmail(to,subject,html) {
   await transporter.sendMail({ from:process.env.EMAIL_FROM || "Reck Shop <no-reply@example.com>",to,subject,html });
   return true;
 }
+
+function safeReturnTo(value) {
+  const raw=String(value||"/dashboard.html");
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/dashboard.html";
+  return raw.slice(0,300);
+}
+function createOauthState(provider, returnTo, rememberMe) {
+  const raw=crypto.randomBytes(32).toString("hex");
+  db.prepare("INSERT INTO oauth_states(state_hash,provider,return_to,remember_me,expires_at,created_at) VALUES (?,?,?,?,?,?)")
+    .run(hashToken(raw),provider,safeReturnTo(returnTo),rememberMe?1:0,new Date(Date.now()+10*60000).toISOString(),nowIso());
+  return raw;
+}
+function consumeOauthState(raw, provider) {
+  const row=db.prepare("SELECT * FROM oauth_states WHERE state_hash=? AND provider=? AND expires_at>?").get(hashToken(String(raw||"")),provider,nowIso());
+  if (!row) return null;
+  db.prepare("DELETE FROM oauth_states WHERE state_hash=?").run(hashToken(String(raw||"")));
+  return row;
+}
+function oauthResultPage({ok,token="",returnTo="/dashboard.html",error=""}) {
+  const payload=JSON.stringify({type:"rsr-oauth-result",ok,token,returnTo,error}).replace(/</g,"\\u003c");
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reck Shop Login</title><style>body{font-family:system-ui;background:#080f1e;color:white;display:grid;place-items:center;min-height:100vh;margin:0}.card{max-width:430px;padding:28px;border:1px solid #334155;border-radius:20px;background:#0f172a;text-align:center}a{color:#c4b5fd}</style></head><body><div class="card"><h1>${ok?"Login successful":"Login failed"}</h1><p>${ok?"Returning to Reck Shop…":String(error||"Authentication failed.")}</p><a href="/auth.html">Return to login</a></div><script>const result=${payload};try{if(window.opener&&!window.opener.closed){window.opener.postMessage(result,location.origin);setTimeout(()=>window.close(),500)}else if(result.ok){localStorage.setItem("rsrSession",result.token);location.replace(result.returnTo)}else{location.replace("/auth.html?oauthError="+encodeURIComponent(result.error))}}catch{location.replace("/auth.html")}</script></body></html>`;
+}
+async function findOrCreateOauthUser(provider, profile) {
+  const providerColumn=provider==="google"?"google_id":"facebook_id";
+  let user=db.prepare(`SELECT * FROM users WHERE ${providerColumn}=?`).get(profile.id);
+  if (user) return user;
+  user=db.prepare("SELECT * FROM users WHERE email=?").get(profile.email);
+  if (user) {
+    db.prepare(`UPDATE users SET ${providerColumn}=?,email_verified=1,auth_provider=? WHERE id=?`).run(profile.id,provider,user.id);
+    return db.prepare("SELECT * FROM users WHERE id=?").get(user.id);
+  }
+  const id=crypto.randomUUID();
+  const randomPassword=await bcrypt.hash(crypto.randomBytes(32).toString("hex"),12);
+  db.prepare(`INSERT INTO users(id,full_name,email,password_hash,email_verified,created_at,${providerColumn},auth_provider,last_login_at)
+    VALUES (?,?,?,?,1,?,?,?,?)`).run(id,profile.name||"Reck Shop Customer",profile.email,randomPassword,nowIso(),profile.id,provider,nowIso());
+  return db.prepare("SELECT * FROM users WHERE id=?").get(id);
+}
+
 function createEmailToken(userId,purpose,minutes=60) {
   const raw=crypto.randomBytes(32).toString("hex");
   db.prepare("DELETE FROM email_tokens WHERE user_id=? AND purpose=?").run(userId,purpose);
@@ -711,18 +782,37 @@ async function verifyRobloxGamePass(gamePassInput, expectedPrice) {
   };
 }
 
-app.get("/api/health",(_,res)=>{
-  res.json({
-    ok:true,
-    version:"V7.1 Game Pass Verified",
-    database:"SQLite",
-    databasePath:DB_PATH,
+app.get("/api/health",async(_,res)=>{
+  let databaseOk=true,emailOk=!EMAIL_ENABLED,emailMessage=EMAIL_ENABLED?"Checking SMTP configuration.":"Email is not configured.";
+  try { db.prepare("SELECT 1 AS ok").get(); } catch { databaseOk=false; }
+  if (EMAIL_ENABLED && transporter) {
+    try { await transporter.verify(); emailOk=true; emailMessage="Email service is connected."; }
+    catch(error) { emailOk=false; emailMessage="Email service is configured but unavailable."; }
+  }
+  const ok=databaseOk;
+  res.status(ok?200:503).json({
+    ok,
+    version:"V11 Authentication & Reliability",
+    server:"online",
+    database:databaseOk?"online":"unavailable",
+    email:{enabled:EMAIL_ENABLED,online:emailOk,message:emailMessage},
+    oauth:{google:OAUTH_ENABLED_GOOGLE,facebook:OAUTH_ENABLED_FACEBOOK},
     storage:process.env.DATA_ROOT?"persistent disk":"local development",
-    emailEnabled:EMAIL_ENABLED
+    now:nowIso()
   });
 });
 
 app.get("/api/settings",(_,res)=>res.json(settingsObject()));
+
+app.get("/api/auth/config",(_,res)=>res.json({
+  emailEnabled:EMAIL_ENABLED,
+  requireEmailVerification:REQUIRE_EMAIL_VERIFICATION,
+  allowDevEmailLinks:ALLOW_DEV_EMAIL_LINKS,
+  oauth:{google:OAUTH_ENABLED_GOOGLE,facebook:OAUTH_ENABLED_FACEBOOK},
+  sessionDays:SESSION_DAYS,
+  shortSessionHours:SHORT_SESSION_HOURS
+}));
+
 
 app.post("/api/gamepass/verify", express.json(), async (req, res) => {
   try {
@@ -823,11 +913,12 @@ app.post("/api/auth/register",authLimiter,async(req,res)=>{
       verificationUrl=`${PUBLIC_BASE_URL}/verify.html?token=${encodeURIComponent(raw)}`;
       await sendEmail(email,"Verify your Reck Shop account",`<p>Hello ${user.fullName},</p><p><a href="${verificationUrl}">Verify your account</a></p>`);
     }
-    const token=createSession(user.id);
     const row=db.prepare("SELECT * FROM users WHERE id=?").get(user.id);
+    const verificationRequired=Boolean(EMAIL_ENABLED && REQUIRE_EMAIL_VERIFICATION);
+    const token=verificationRequired?null:createSession(user.id,true);
     res.status(201).json({
-      token,user:publicUser(row),
-      verificationRequired:EMAIL_ENABLED,
+      token,user:publicUser(row),verificationRequired,
+      message:verificationRequired?"Check your email and verify your account before logging in.":"Account created successfully.",
       ...(ALLOW_DEV_EMAIL_LINKS&&verificationUrl?{verificationUrl}:{})
     });
   }catch(error){console.error(error);res.status(500).json({error:"Registration failed."});}
@@ -836,10 +927,11 @@ app.post("/api/auth/register",authLimiter,async(req,res)=>{
 app.post("/api/auth/login",authLimiter,async(req,res)=>{
   const email=String(req.body.email||"").trim().toLowerCase();
   const password=String(req.body.password||"");
+  const rememberMe=req.body.rememberMe!==false;
   const row=db.prepare("SELECT * FROM users WHERE email=?").get(email);
   if(!row||!(await bcrypt.compare(password,row.password_hash)))return res.status(401).json({error:"Incorrect email or password."});
-  if(REQUIRE_EMAIL_VERIFICATION&&!row.email_verified)return res.status(403).json({error:"Verify your email before logging in."});
-  res.json({token:createSession(row.id),user:publicUser(row)});
+  if(REQUIRE_EMAIL_VERIFICATION&&!row.email_verified)return res.status(403).json({error:"Verify your email before logging in.","code":"EMAIL_NOT_VERIFIED"});
+  res.json({token:createSession(row.id,rememberMe),user:publicUser(row),rememberMe});
 });
 
 app.get("/api/auth/me",requireCustomer,(req,res)=>res.json({user:publicUser(req.customer)}));
@@ -850,16 +942,45 @@ app.post("/api/auth/logout",requireCustomer,(req,res)=>{
   res.json({ok:true});
 });
 
+
+app.post("/api/auth/resend-verification",authLimiter,async(req,res)=>{
+  const email=String(req.body.email||"").trim().toLowerCase();
+  const user=db.prepare("SELECT * FROM users WHERE email=?").get(email);
+  let verificationUrl=null;
+  if(user && !user.email_verified && EMAIL_ENABLED){
+    const raw=createEmailToken(user.id,"verify",24*60);
+    verificationUrl=`${PUBLIC_BASE_URL}/verify.html?token=${encodeURIComponent(raw)}`;
+    try {
+      await sendEmail(email,"Verify your Reck Shop account",`<h2>Verify your Reck Shop account</h2><p>Hello ${user.full_name},</p><p><a href="${verificationUrl}">Verify my email</a></p><p>This link expires in 24 hours.</p>`);
+    } catch(error) {
+      console.error("Verification email:",error.message);
+      return res.status(503).json({error:"The email service is temporarily unavailable. Please try again shortly."});
+    }
+  }
+  res.json({ok:true,message:"If the account needs verification, a new email has been sent.",...(ALLOW_DEV_EMAIL_LINKS&&verificationUrl?{verificationUrl}:{})});
+});
+
 app.post("/api/auth/forgot",authLimiter,async(req,res)=>{
   const email=String(req.body.email||"").trim().toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return res.status(400).json({error:"Enter a valid email address."});
   const user=db.prepare("SELECT * FROM users WHERE email=?").get(email);
   let resetUrl=null;
   if(user){
     const raw=createEmailToken(user.id,"reset",60);
     resetUrl=`${PUBLIC_BASE_URL}/reset-password.html?token=${encodeURIComponent(raw)}`;
-    if(EMAIL_ENABLED)await sendEmail(email,"Reset your Reck Shop password",`<p><a href="${resetUrl}">Reset your password</a></p>`);
+    if(EMAIL_ENABLED){
+      try {
+        await sendEmail(email,"Reset your Reck Shop password",`<h2>Reset your password</h2><p>Hello ${user.full_name},</p><p><a href="${resetUrl}">Reset my password</a></p><p>This link expires in 60 minutes. Ignore this email if you did not request it.</p>`);
+      } catch(error) {
+        console.error("Password reset email:",error.message);
+        return res.status(503).json({error:"The password-reset email service is temporarily unavailable. Please try again shortly."});
+      }
+    }
   }
-  res.json({ok:true,message:"If the account exists, reset instructions were created.",...(ALLOW_DEV_EMAIL_LINKS&&resetUrl?{resetUrl}:{})});
+  const deliveryMessage=EMAIL_ENABLED
+    ?"If an account exists for that email, reset instructions have been sent."
+    :"Email delivery is not configured yet. Contact shop support for account recovery.";
+  res.json({ok:true,message:deliveryMessage,emailEnabled:EMAIL_ENABLED,...(ALLOW_DEV_EMAIL_LINKS&&resetUrl?{resetUrl}:{})});
 });
 
 app.post("/api/auth/reset",authLimiter,async(req,res)=>{
@@ -885,6 +1006,71 @@ app.post("/api/auth/verify",authLimiter,(req,res)=>{
     db.prepare("DELETE FROM email_tokens WHERE user_id=? AND purpose='verify'").run(row.user_id);
   })();
   res.json({ok:true});
+});
+
+
+app.get("/api/auth/google/start",(req,res)=>{
+  if(!OAUTH_ENABLED_GOOGLE)return res.redirect("/auth.html?oauthError="+encodeURIComponent("Google login is not configured yet."));
+  const rememberMe=String(req.query.rememberMe||"true")!=="false";
+  const state=createOauthState("google",req.query.returnTo||"/dashboard.html",rememberMe);
+  const params=new URLSearchParams({
+    client_id:GOOGLE_CLIENT_ID,
+    redirect_uri:`${PUBLIC_BASE_URL}/api/auth/google/callback`,
+    response_type:"code",scope:"openid email profile",state,
+    access_type:"online",prompt:"select_account"
+  });
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+});
+app.get("/api/auth/google/callback",async(req,res)=>{
+  try{
+    const state=consumeOauthState(req.query.state,"google");
+    if(!state)throw new Error("Google login session expired. Please try again.");
+    if(req.query.error)throw new Error("Google login was cancelled.");
+    const tokenResponse=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({
+      code:String(req.query.code||""),client_id:GOOGLE_CLIENT_ID,client_secret:GOOGLE_CLIENT_SECRET,
+      redirect_uri:`${PUBLIC_BASE_URL}/api/auth/google/callback`,grant_type:"authorization_code"
+    })});
+    const tokens=await tokenResponse.json();
+    if(!tokenResponse.ok||!tokens.access_token)throw new Error("Google could not complete the login.");
+    const profileResponse=await fetch("https://openidconnect.googleapis.com/v1/userinfo",{headers:{Authorization:`Bearer ${tokens.access_token}`}});
+    const profile=await profileResponse.json();
+    if(!profileResponse.ok||!profile.email||!profile.sub)throw new Error("Google did not provide a verified email address.");
+    const user=await findOrCreateOauthUser("google",{id:String(profile.sub),email:String(profile.email).toLowerCase(),name:profile.name||profile.email});
+    const token=createSession(user.id,Boolean(state.remember_me));
+    res.type("html").send(oauthResultPage({ok:true,token,returnTo:state.return_to}));
+  }catch(error){res.type("html").status(400).send(oauthResultPage({ok:false,error:error.message}));}
+});
+app.get("/api/auth/facebook/start",(req,res)=>{
+  if(!OAUTH_ENABLED_FACEBOOK)return res.redirect("/auth.html?oauthError="+encodeURIComponent("Facebook login is not configured yet."));
+  const rememberMe=String(req.query.rememberMe||"true")!=="false";
+  const state=createOauthState("facebook",req.query.returnTo||"/dashboard.html",rememberMe);
+  const params=new URLSearchParams({
+    client_id:FACEBOOK_APP_ID,
+    redirect_uri:`${PUBLIC_BASE_URL}/api/auth/facebook/callback`,
+    response_type:"code",scope:"email,public_profile",state
+  });
+  res.redirect(`https://www.facebook.com/v22.0/dialog/oauth?${params}`);
+});
+app.get("/api/auth/facebook/callback",async(req,res)=>{
+  try{
+    const state=consumeOauthState(req.query.state,"facebook");
+    if(!state)throw new Error("Facebook login session expired. Please try again.");
+    if(req.query.error)throw new Error("Facebook login was cancelled.");
+    const tokenUrl=new URL("https://graph.facebook.com/v22.0/oauth/access_token");
+    tokenUrl.search=new URLSearchParams({
+      client_id:FACEBOOK_APP_ID,client_secret:FACEBOOK_APP_SECRET,
+      redirect_uri:`${PUBLIC_BASE_URL}/api/auth/facebook/callback`,code:String(req.query.code||"")
+    });
+    const tokenResponse=await fetch(tokenUrl);const tokens=await tokenResponse.json();
+    if(!tokenResponse.ok||!tokens.access_token)throw new Error("Facebook could not complete the login.");
+    const profileUrl=new URL("https://graph.facebook.com/me");
+    profileUrl.search=new URLSearchParams({fields:"id,name,email",access_token:tokens.access_token});
+    const profileResponse=await fetch(profileUrl);const profile=await profileResponse.json();
+    if(!profileResponse.ok||!profile.email||!profile.id)throw new Error("Facebook did not provide an email address. Make sure your Facebook account has a confirmed email.");
+    const user=await findOrCreateOauthUser("facebook",{id:String(profile.id),email:String(profile.email).toLowerCase(),name:profile.name||profile.email});
+    const token=createSession(user.id,Boolean(state.remember_me));
+    res.type("html").send(oauthResultPage({ok:true,token,returnTo:state.return_to}));
+  }catch(error){res.type("html").status(400).send(oauthResultPage({ok:false,error:error.message}));}
 });
 
 app.get("/api/roblox/search",async(req,res)=>{
@@ -1439,7 +1625,7 @@ app.use((error,_,res,__)=>{
 });
 
 app.listen(PORT,()=>{
-  console.log(`RSR Shop V10.1 Full Translation Edition running on port ${PORT}`);
+  console.log(`RSR Shop V11 Authentication & Reliability Edition running on port ${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
 });

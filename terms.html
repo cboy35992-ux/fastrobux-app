@@ -1,40 +1,90 @@
-"use strict";
-const $=id=>document.getElementById(id);
-const token=localStorage.getItem("rsrSession");
-const user=JSON.parse(localStorage.getItem("rsrUser")||"null");
-let cfg=null,selectedMethod="ct",selectedRoblox=null,discount=0,appliedPromo="";
-const peso=n=>new Intl.NumberFormat("en-PH",{style:"currency",currency:"PHP"}).format(Number(n)||0);
-const num=n=>Number(n||0).toLocaleString();
-async function api(url,options={}){options.headers={...(options.headers||{})};if(token)options.headers.Authorization=`Bearer ${token}`;const r=await fetch(url,options),t=await r.text();let d;try{d=t?JSON.parse(t):{}}catch{throw new Error(`Invalid server response (${r.status}).`)}if(!r.ok)throw new Error(d.error||`Request failed (${r.status}).`);return d}
-if(token&&user){$("accountLink").textContent="My Dashboard";$("accountLink").href="dashboard.html"}
-function paymentMethod(){return document.querySelector('input[name="paymentMethod"]:checked')?.value||"GCash"}
-function calc(){
-  const amount=Math.floor(Number($("amount").value)||0);let receive=amount,pass=0;
-  if(selectedMethod==="ct")pass=Math.ceil(amount/.7);
-  if(selectedMethod==="nct"){pass=amount;receive=Math.floor(amount*.7)}
-  const subtotal=amount/1000*(cfg?.rates?.[selectedMethod]||0),total=Math.max(0,subtotal-discount);
-  $("methodDisplay").textContent={ct:"Covered Tax",nct:"Not Covered Tax",instant:"Robux Instant",gifting:"In-Game Gifting"}[selectedMethod];
-  $("receiveDisplay").textContent=`${num(receive)} Robux`;$("passDisplay").textContent=`${num(pass)} Robux`;
-  $("passRow").classList.toggle("hidden",!["ct","nct"].includes(selectedMethod));
-  $("subtotalDisplay").textContent=peso(subtotal);$("discountDisplay").textContent=`−${peso(discount)}`;
-  $("totalDisplay").textContent=peso(total);$("exactAmount").textContent=peso(total);
-  return{amount,receive,pass,subtotal,total}
-}
-async function start(){
-  cfg=await api("/api/settings");
-  $("supportStatus").textContent=cfg.supportOnline?"● Support Online":"● Support Away";$("supportStatus").classList.toggle("online",cfg.supportOnline);
-  $("stockDisplay").textContent=`${num(cfg.instantStock)} Robux`;
-  [["rateCt","ct"],["rateNct","nct"],["rateInstant","instant"],["rateGifting","gifting"]].forEach(([id,key])=>$(id).textContent=`₱${cfg.rates[key].toLocaleString("en-PH")} / 1,000`);
-  calc();loadReviews();updatePayment();
-}
-document.querySelectorAll(".method-card").forEach(b=>b.onclick=()=>{selectedMethod=b.dataset.method;discount=0;appliedPromo="";$("promoCode").value="";$("promoMessage").textContent="";document.querySelectorAll(".method-card").forEach(x=>x.classList.toggle("active",x===b));$("giftingFields").classList.toggle("hidden",selectedMethod!=="gifting");calc()});
-document.querySelectorAll(".quick button").forEach(b=>b.onclick=()=>{$("amount").value=b.dataset.amount;discount=0;appliedPromo="";calc()});$("amount").oninput=()=>{discount=0;appliedPromo="";calc()};
-$("searchRoblox").onclick=async()=>{const b=$("searchRoblox");b.disabled=true;b.textContent="Searching…";try{selectedRoblox=await api(`/api/roblox/search?username=${encodeURIComponent($("usernameSearch").value.trim())}`);$("robloxAvatar").src=selectedRoblox.avatarUrl;$("robloxDisplayName").textContent=selectedRoblox.displayName;$("robloxUsername").textContent=`@${selectedRoblox.username}`;$("robloxUserId").textContent=`User ID: ${selectedRoblox.userId}`;$("robloxResult").classList.remove("hidden")}catch(e){alert(e.message)}finally{b.disabled=false;b.textContent="Search"}};
-$("applyPromo").onclick=async()=>{if(!token)return location.href="auth.html";try{const c=calc(),d=await api("/api/promo/preview",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:$("promoCode").value.trim(),subtotal:c.subtotal})});discount=d.discount||0;appliedPromo=d.code||"";$("promoMessage").className="message success";$("promoMessage").textContent=`Promo applied: −${peso(discount)}`;calc()}catch(e){discount=0;appliedPromo="";$("promoMessage").className="message error";$("promoMessage").textContent=e.message;calc()}};
-function updatePayment(){document.querySelectorAll(".payment-card").forEach(c=>c.classList.toggle("active",c.querySelector("input").checked));const method=paymentMethod();const local=method==="GCash"||method==="GoTyme Bank";$("paymentQr").classList.toggle("hidden",!local);if(method==="GCash"){$("paymentQr").src="images/gcash-qr.png";$("paymentTitle").textContent="Pay through GCash";$("paymentInstructions").textContent="Scan the QR and pay the exact amount."}else if(method==="GoTyme Bank"){$("paymentQr").src="images/gotyme-qr.png";$("paymentTitle").textContent="Pay through GoTyme Bank";$("paymentInstructions").textContent="Scan the QR using an InstaPay-supported app."}else{$("paymentTitle").textContent=`Pay through ${method}`;const map={PayPal:cfg?.paymentDetails?.paypalEmail,Wise:cfg?.paymentDetails?.wiseDetails,Payoneer:cfg?.paymentDetails?.payoneerDetails};$("paymentInstructions").textContent=map[method]||`Contact support for the current ${method} payment details before paying.`}}
-document.querySelectorAll('input[name="paymentMethod"]').forEach(i=>i.onchange=updatePayment);
-$("submitOrder").onclick=async()=>{const msg=$("submitMessage");msg.className="message";msg.textContent="";if(!token){msg.className="message error";msg.innerHTML='Please <a href="auth.html">log in or register</a> before ordering.';return}const c=calc(),receipt=$("receipt").files[0];if(!selectedRoblox)return fail("Search and select the Roblox account.");if(c.amount<=0)return fail("Enter a valid amount.");if(selectedMethod==="instant"&&c.amount<10)return fail("Instant minimum is 10 Robux.");if(selectedMethod==="instant"&&c.amount>cfg.instantStock)return fail("Not enough Instant stock.");if(selectedMethod==="gifting"&&(!$("gameName").value.trim()||!$("itemName").value.trim()))return fail("Enter the game and item name.");if(!$("senderName").value.trim())return fail("Enter the sender name.");if($("referenceNumber").value.trim().length<5)return fail("Enter a valid payment reference.");if(!receipt)return fail("Upload the receipt.");if(!$("confirm").checked)return fail("Confirm the order information.");const form=new FormData();Object.entries({methodKey:selectedMethod,amount:c.amount,promoCode:appliedPromo,paymentMethod:paymentMethod(),senderName:$("senderName").value.trim(),referenceNumber:$("referenceNumber").value.trim(),robloxUserId:selectedRoblox.userId,username:selectedRoblox.username,robloxDisplayName:selectedRoblox.displayName,robloxAvatarUrl:selectedRoblox.avatarUrl,gameName:$("gameName").value.trim(),itemName:$("itemName").value.trim()}).forEach(([k,v])=>form.append(k,v));form.append("receipt",receipt);const b=$("submitOrder");b.disabled=true;b.textContent="Submitting…";try{const d=await api("/api/orders",{method:"POST",body:form});msg.className="message success";msg.innerHTML=`Order created: <b>${d.orderNumber}</b><br><a href="dashboard.html">Open your dashboard</a>`;cfg=await api("/api/settings");$("stockDisplay").textContent=`${num(cfg.instantStock)} Robux`}catch(e){fail(e.message)}finally{b.disabled=false;b.textContent="Submit Order"}function fail(t){msg.className="message error";msg.textContent=t}};
-async function loadReviews(){try{const d=await api("/api/reviews");$("reviews").innerHTML=d.reviews.length?d.reviews.map(r=>`<article class="review-card"><div class="stars">${"★".repeat(r.rating)}${"☆".repeat(5-r.rating)}</div><p>${escapeHtml(r.comment)}</p><b>${escapeHtml(r.full_name)}</b><small class="muted">${escapeHtml(r.method)}</small></article>`).join(""):'<p class="muted">No published reviews yet.</p>'}catch{$("reviews").innerHTML='<p class="muted">Reviews are temporarily unavailable.</p>'}}
-function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-start().catch(e=>{$("submitMessage").className="message error";$("submitMessage").textContent=`Connection problem: ${e.message}`});
-let deferredInstallPrompt=null;window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;if($("installApp"))$("installApp").classList.remove("hidden")});if($("installApp"))$("installApp").onclick=async()=>{if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;$("installApp").classList.add("hidden")};function applyLive(x){if(!x?.settings)return;cfg=x.settings;$("supportStatus").textContent=cfg.supportOnline?"● Support Online":"● Support Away";$("supportStatus").classList.toggle("online",cfg.supportOnline);$("stockDisplay").textContent=`${num(cfg.instantStock)} Robux`;document.querySelectorAll(".payment-card").forEach(c=>{const v=c.querySelector("input")?.value,en=cfg.paymentEnabled?.[v]!==false;c.classList.toggle("hidden",!en)});if($("shopBanner")){$("shopBanner").textContent=cfg.banner?.text||"";$("shopBanner").classList.toggle("hidden",!cfg.banner?.enabled)}}setInterval(async()=>{try{applyLive(await api("/api/live"))}catch{}},10000);
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin | RSR</title><link rel="stylesheet" href="style.css"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#8b5cf6"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/icons/favicon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Reck Shop">
+</head><body><header class="navbar"><a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>Admin</small></span></a><nav><a href="/">Shop</a><span>Unread <span id="unreadBadge" class="badge hidden">0</span></span></nav></header><main class="container"><section class="panel"><h1>Admin Login</h1><div class="search-row"><input id="key" type="password" placeholder="ADMIN_KEY"><button id="login">Open Dashboard</button></div><p id="loginMessage" class="message"></p></section><div id="area" class="hidden"><section class="stats-grid"><article><span>Total Orders</span><strong id="totalOrders">0</strong></article><article><span>Pending</span><strong id="pendingOrders">0</strong></article><article><span>Completed</span><strong id="completedOrders">0</strong></article><article><span>Revenue</span><strong id="revenue">₱0</strong></article><article><span>Completion Rate</span><strong id="completionRate">0%</strong></article><article><span>Average Completed Order</span><strong id="averageOrder">₱0</strong></article><article><span>Last 7 Days Orders</span><strong id="last7Orders">0</strong></article><article><span>Last 7 Days Revenue</span><strong id="last7Revenue">₱0</strong></article></section><section class="panel"><h2>Store Settings</h2><div class="two-columns"><label>Instant Stock<input id="stock" type="number"></label><label>Support Text<input id="supportText"></label><label>CT Rate<input id="rateCt" type="number" step=".01"></label><label>NCT Rate<input id="rateNct" type="number" step=".01"></label><label>Instant Rate<input id="rateInstant" type="number" step=".01"></label><label>Gifting Rate<input id="rateGifting" type="number" step=".01"></label><label>PayPal Email<input id="paypalEmail"></label><label>Wise Details<input id="wiseDetails"></label><label>Payoneer Details<input id="payoneerDetails"></label></div><div class="two-columns"><label class="confirm"><input id="paymentGCashEnabled" type="checkbox"> GCash enabled</label><label class="confirm"><input id="paymentGoTymeEnabled" type="checkbox"> GoTyme enabled</label><label class="confirm"><input id="paymentPayPalEnabled" type="checkbox"> PayPal enabled</label><label class="confirm"><input id="paymentWiseEnabled" type="checkbox"> Wise enabled</label><label class="confirm"><input id="paymentPayoneerEnabled" type="checkbox"> Payoneer enabled</label><label class="confirm"><input id="shopBannerEnabled" type="checkbox"> Show announcement banner</label><label>Announcement Text<input id="shopBannerText"></label><label class="confirm"><input id="maintenanceMode" type="checkbox"> Maintenance mode</label></div><label class="confirm"><input id="supportOnline" type="checkbox"> Support Online</label><button id="saveSettings" class="button primary full">Save Settings</button></section>
+<section class="panel">
+  <h2>Trust Center & Business Profile</h2>
+  <p class="muted">Publish only accurate information that customers can verify. These fields can be edited and saved anytime.</p>
+  <div class="two-columns">
+    <label>Business Name<input id="businessName"></label>
+    <label>Owner/Representative Display Name<input id="businessOwnerDisplay"></label>
+    <label>Business Email<input id="businessEmail" type="email"></label>
+    <label>Phone / Contact Number<input id="businessPhone"></label>
+    <label>Business Location<input id="businessAddress"></label>
+    <label>Support Hours<input id="supportHours"></label>
+    <label>Facebook Page URL<input id="facebookUrl" type="url"></label>
+    <label>Discord Invite URL<input id="discordUrl" type="url"></label>
+  </div>
+  <label>Trust Notice<textarea id="trustNotice"></textarea></label>
+  <div class="two-columns">
+    <label class="confirm"><input id="publicStatsEnabled" type="checkbox"> Enable public statistics</label>
+    <label class="confirm"><input id="publicCompletedCount" type="checkbox"> Show completed-order count</label>
+    <label class="confirm"><input id="publicReviewCount" type="checkbox"> Show published-review count</label>
+    <label class="confirm"><input id="publicAverageRating" type="checkbox"> Show average rating</label>
+  </div>
+  <button id="saveTrustSettings" class="button primary full">Save Trust Center</button>
+</section>
+
+<section class="panel"><h2>Delivery Estimates & Stock Alerts</h2><p class="muted">These messages appear to buyers and can be changed anytime.</p><div class="two-columns"><label>Covered Tax ETA<input id="etaCt" placeholder="10–30 minutes"></label><label>Not Covered Tax ETA<input id="etaNct" placeholder="10–30 minutes"></label><label>Instant ETA<input id="etaInstant" placeholder="5–15 minutes"></label><label>Gifting ETA<input id="etaGifting" placeholder="15–60 minutes"></label><label>Low Stock Warning Threshold<input id="lowStockThreshold" type="number" min="0"></label></div><label>Pending Robux Notice<textarea id="pendingNotice"></textarea></label><button id="saveDeliverySettings" class="button primary full">Save Delivery Settings</button></section><section class="panel"><h2>Promo Codes</h2><div class="two-columns"><label>Code<input id="promoNewCode"></label><label>Discount Type<select id="promoType"><option value="percent">Percent</option><option value="fixed">Fixed PHP</option></select></label><label>Discount Value<input id="promoValue" type="number"></label><label>Minimum Payment<input id="promoMinimum" type="number"></label><label>Maximum Uses<input id="promoMax" type="number"></label><label>Expires At<input id="promoExpires" type="datetime-local"></label></div><button id="createPromo" class="button secondary">Create Promo</button><div id="promoList" class="orders-list"></div></section><section class="admin-grid"><section class="panel"><div class="order-header"><h2>Orders</h2><div class="button-row"><button id="exportOrders" class="button secondary">Export CSV</button><button id="refresh">Refresh</button></div></div><div class="search-row"><input id="search" placeholder="Order, username or reference"><button id="searchButton">Search</button></div><label>Status Filter<select id="statusFilter"><option value="">All</option><option>Pending Payment Review</option><option>Approved</option><option>Processing</option><option>Ready for Delivery</option><option>Completed</option><option>Declined</option></select></label><div id="orders" class="orders-list"></div></section><section id="selectedPanel" class="panel hidden"><div class="order-header"><div><h2 id="selectedNumber"></h2><span id="selectedStatus" class="status-pill"></span></div><a id="adminReceipt" class="button secondary" target="_blank">Receipt</a></div><div id="selectedDetails" class="details-grid"></div><div class="status-actions"><button data-status="Approved">Approve</button><button data-status="Processing">Processing</button><button data-status="Ready for Delivery">Ready</button><button data-status="Completed">Complete</button><button class="danger" data-status="Declined">Decline</button></div><div id="adminMessages" class="chat-box"></div><div class="search-row"><input id="adminChat"><button id="adminSend">Reply</button></div></section></section><section class="panel"><h2>Review Moderation</h2><div id="reviewList" class="orders-list"></div></section><section class="panel"><div class="order-header"><h2>Backups & Audit</h2><button id="createBackup">Create Backup</button></div><div id="auditList" class="orders-list"></div></section>
+<section class="analytics-grid">
+  
+<section class="panel">
+  <h2>Tutorial / Reels Settings</h2>
+  <p class="muted">Change the tutorial video anytime. YouTube videos and Shorts can be embedded automatically. Other reel links open in a new tab.</p>
+  <div class="two-columns">
+    <label>Tutorial Title<input id="tutorialTitle" placeholder="How to Create a Roblox Game Pass"></label>
+    <label>Tutorial Video or Reel URL<input id="tutorialVideoUrl" type="url" placeholder="https://www.youtube.com/shorts/..."></label>
+  </div>
+  <label class="check"><input id="tutorialVideoEnabled" type="checkbox"> Show tutorial video publicly</label>
+  <div class="two-columns">
+    <label>Default Language
+      <select id="languageDefault">
+        <option value="en">English</option>
+        <option value="fil">Filipino / Tagalog</option>
+        <option value="ceb">Cebuano / Bisaya</option>
+        <option value="es">Español</option>
+        <option value="pt">Português</option>
+        <option value="vi">Tiếng Việt</option>
+      </select>
+    </label>
+    <label class="check"><input id="languageAutoDetect" type="checkbox"> Automatically detect the buyer's browser language</label>
+  </div>
+  <button id="saveTutorialSettings" class="button primary full">Save Tutorial & Language Settings</button>
+</section>
+<section class="panel"><h2>Orders by Method</h2><div id="methodAnalytics" class="analytics-bars"></div></section>
+  <section class="panel"><h2>Orders by Payment</h2><div id="paymentAnalytics" class="analytics-bars"></div></section>
+  <section class="panel"><h2>Status Distribution</h2><div id="statusAnalytics" class="analytics-bars"></div></section>
+</section>
+<section class="panel"><h2>Last 30 Days</h2><div class="table-wrap"><table class="analytics-table"><thead><tr><th>Date</th><th>Orders</th><th>Revenue</th></tr></thead><tbody id="dailyAnalytics"></tbody></table></div></section></div>
+<section class="panel" id="translationEditorPanel">
+  <h2>Translation Editor</h2>
+  <p class="muted">Correct or add any customer-facing translation without changing code or redeploying.</p>
+  <div class="two-columns">
+    <label>Language
+      <select id="translationLanguage">
+        <option value="fil">Filipino / Tagalog</option><option value="ceb">Cebuano / Bisaya</option>
+        <option value="es">Spanish</option><option value="pt">Portuguese</option><option value="vi">Vietnamese</option>
+        <option value="fr">French</option><option value="de">German</option><option value="id">Indonesian</option>
+        <option value="ja">Japanese</option><option value="ko">Korean</option><option value="zh">Chinese</option>
+        <option value="th">Thai</option><option value="ar">Arabic</option>
+      </select>
+    </label>
+    <label>Search saved translations<input id="translationSearch" placeholder="Search English or translated text"></label>
+  </div>
+  <label>Original English text<textarea id="translationSource" placeholder="Example: Submit Order"></textarea></label>
+  <label>Translated text<textarea id="translationValue" placeholder="Enter the exact translation"></textarea></label>
+  <div class="button-row"><button id="saveTranslation" class="button primary">Save Translation</button><button id="clearTranslationForm" class="button secondary">Clear</button></div>
+  <div id="translationList" class="translation-list"></div>
+</section>
+
+</main><script src="admin.js"></script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script>
+<script src="i18n.js" defer></script>
+<script src="install.js" defer></script>
+<script src="v94-admin.js" defer></script>
+<script src="v10-admin.js" defer></script>
+<script src="v101-admin-translations.js" defer></script>
+<script src="network.js" defer></script>
+<script src="connection-status.js" defer></script>
+</body></html>

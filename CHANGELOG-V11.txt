@@ -1,0 +1,19 @@
+RSR SHOP V11 — AUTHENTICATION & RELIABILITY
+
+- Preserved the separated mobile order checkout from V10.2.
+- Working email-verification flow with resend verification.
+- Working password-reset request and secure reset link flow.
+- Remember Me and shorter non-remembered browser sessions.
+- Stay signed in using persistent local storage when requested.
+- Optional Google OAuth login.
+- Optional Facebook OAuth login.
+- Server, database, email and OAuth health reporting.
+- Automatic retries while Render wakes up.
+- Professional connecting/loading overlay.
+- Accurate distinction between device offline, timeout and server unavailable.
+- Corrected service-worker cache constant bug.
+- Offline page now appears only after a true network fetch failure.
+- Better authentication messages and recovery guidance.
+- Added exact Render, SMTP, Google and Facebook setup instructions.
+
+Google/Facebook login and outgoing email require the owner's provider credentials.

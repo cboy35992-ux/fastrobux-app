@@ -1,10 +1,36 @@
-RSR Shop V7.4 CT/NCT Verification Hotfix
+PORT=3000
+PUBLIC_BASE_URL=http://localhost:3000
+DATA_ROOT=
+ADMIN_KEY=CHANGE_THIS_TO_A_LONG_RANDOM_PASSWORD
+DISCORD_WEBHOOK_URL=
 
-Fixed:
-- Removed the browser error: esc is not defined.
-- Successful Game Pass verification now displays correctly.
-- Added Roblox game-pass details endpoint as a verification fallback.
-- Added support for priceInformation.defaultPriceInRobux.
-- Updated service-worker cache version so browsers load the corrected script.
+# Email verification and password reset.
+# Set EMAIL_ENABLED=true only after SMTP is configured.
+EMAIL_ENABLED=false
+ALLOW_DEV_EMAIL_LINKS=false
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASS=
+EMAIL_FROM=Reck Shop <no-reply@example.com>
 
-After deploying, use Ctrl + Shift + R once or clear site data if an old cached script remains.
+# Security and shop configuration
+SESSION_DAYS=30
+RESERVATION_MINUTES=60
+REQUIRE_EMAIL_VERIFICATION=true
+
+# Short login duration when "Remember Me" is not selected.
+SHORT_SESSION_HOURS=12
+
+# Optional Google login.
+# Google Cloud Console callback:
+# https://YOUR-DOMAIN/api/auth/google/callback
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Optional Facebook login.
+# Meta Developers callback:
+# https://YOUR-DOMAIN/api/auth/facebook/callback
+FACEBOOK_APP_ID=
+FACEBOOK_APP_SECRET=

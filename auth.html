@@ -1,1 +1,35 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Refund Policy | RSR</title><link rel="stylesheet" href="style.css"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#8b5cf6"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"></head><body><header class="navbar"><a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>Refund Policy</small></span></a></header><main class="container narrow"><section class="panel"><h1>Refund Policy</h1><p>Do not pay until the order details, rate and payment destination are correct.</p><p>Refund eligibility depends on whether delivery has started or completed and on the payment provider's rules.</p><p>Duplicate, incorrect or unauthorized payments must be reported immediately through private order chat.</p><p>Publish your exact refund time limits and conditions before promoting the shop.</p></section></main><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script></body></html>
+const CACHE_NAME="reck-shop-v11-auth-reliability";
+const STATIC_ASSETS=[
+  "/","/index.html","/style.css","/auth.html","/forgot-password.html","/reset-password.html","/verify.html",
+  "/dashboard.html","/order.html","/tutorial.html","/faq.html","/trust.html","/offline.html",
+  "/manifest.webmanifest","/network.js","/connection-status.js","/auth.js","/forgot-password.js",
+  "/reset-password.js","/verify.js","/i18n.js","/install.js","/checkout-wizard.js",
+  "/icons/icon-192.png","/icons/icon-512.png","/icons/icon-1024.png"
+];
+self.addEventListener("install",event=>{
+  event.waitUntil(caches.open(CACHE_NAME).then(cache=>Promise.allSettled(STATIC_ASSETS.map(asset=>cache.add(asset)))).then(()=>self.skipWaiting()));
+});
+self.addEventListener("activate",event=>{
+  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE_NAME).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));
+});
+self.addEventListener("fetch",event=>{
+  const request=event.request;
+  const url=new URL(request.url);
+  if(request.method!=="GET"||url.origin!==location.origin||url.pathname.startsWith("/api/"))return;
+  const isNavigation=request.mode==="navigate";
+  event.respondWith((async()=>{
+    try{
+      const response=await fetch(request);
+      if(response.ok){const cache=await caches.open(CACHE_NAME);cache.put(request,response.clone()).catch(()=>{})}
+      return response;
+    }catch(error){
+      const cached=await caches.match(request);
+      if(cached)return cached;
+      if(isNavigation){
+        const offline=await caches.match("/offline.html");
+        if(offline)return offline;
+      }
+      return new Response("Network unavailable",{status:503,headers:{"Content-Type":"text/plain"}});
+    }
+  })());
+});

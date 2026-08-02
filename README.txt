@@ -234,3 +234,7 @@ Use Admin → Translation Editor to correct or add any exact customer-facing phr
 
 V10.2 MOBILE CHECKOUT
 The public order form is separated into Method, Account, Game Pass, and Payment steps. CT/NCT includes Game Pass; Instant/Gifting skips that step automatically.
+
+
+V11 AUTHENTICATION & RELIABILITY
+Read AUTH-SETUP-V11.txt before enabling email verification or Google/Facebook login. The V10.2 separated order checkout remains included.
