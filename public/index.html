@@ -60,16 +60,16 @@
 </section>
 
 
-<section class="panel tutorial-preview">
+<section class="panel tutorial-preview" data-tutorial-section>
   <div class="section-title"><span>?</span><div><h2>First time buying?</h2><p>Watch the video and follow the exact steps before paying.</p></div></div>
   <div class="tutorial-preview-grid">
     <div>
-      <h3>Learn each method first</h3>
+      <h3 data-tutorial-title>Learn each method first</h3>
       <p>See how Covered Tax, Not Covered Tax, Robux Instant and In-Game Gifting work, including the exact Game Pass-price rule.</p>
-      <div class="hero-actions"><a class="button primary" href="tutorial.html">Open Full Tutorial</a><a class="button secondary" href="https://www.youtube.com/shorts/1i6fGhZ5GL0" target="_blank" rel="noopener">Watch YouTube Short</a></div>
+      <div class="hero-actions"><a class="button primary" href="tutorial.html">Open Full Tutorial</a><a class="button secondary" href="tutorial.html" data-tutorial-link target="_blank" rel="noopener">Watch Tutorial Video</a></div>
     </div>
     <div class="mini-video">
-      <iframe src="https://www.youtube.com/embed/1i6fGhZ5GL0" title="Quick buyer tutorial" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      <iframe data-tutorial-frame src="https://www.youtube.com/embed/1i6fGhZ5GL0" title="Quick buyer tutorial" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
     </div>
   </div>
 </section>
@@ -203,4 +203,8 @@
  </div>
 </div>
 <script src="script.js"></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script></body></html>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script>
+<script src="i18n.js" defer></script>
+<script src="install.js" defer></script>
+<script src="tutorial-media.js" defer></script>
+</body></html>

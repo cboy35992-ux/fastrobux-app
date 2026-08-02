@@ -193,7 +193,12 @@ const defaultSettings = {
   public_stats_enabled: "true",
   public_completed_count: "true",
   public_review_count: "true",
-  public_average_rating: "true"
+  public_average_rating: "true",
+  tutorial_title: "How to Create a Roblox Game Pass",
+  tutorial_video_url: "https://www.youtube.com/shorts/1i6fGhZ5GL0",
+  tutorial_video_enabled: "true",
+  language_default: "en",
+  language_auto_detect: "true"
 };
 const setSettingStmt = db.prepare("INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)");
 for (const [key, value] of Object.entries(defaultSettings)) setSettingStmt.run(key, value);
@@ -281,6 +286,15 @@ function settingsObject() {
       showCompleted: setting("public_completed_count") === "true",
       showReviewCount: setting("public_review_count") === "true",
       showAverageRating: setting("public_average_rating") === "true"
+    },
+    tutorial: {
+      title: setting("tutorial_title"),
+      videoUrl: setting("tutorial_video_url"),
+      enabled: setting("tutorial_video_enabled") === "true"
+    },
+    language: {
+      default: setting("language_default") || "en",
+      autoDetect: setting("language_auto_detect") !== "false"
     }
   };
 }
@@ -1000,16 +1014,24 @@ app.patch("/api/admin/orders/:number/status",requireAdmin,(req,res)=>{
 });
 
 app.patch("/api/admin/settings",requireAdmin,(req,res)=>{
-  const allowed=["instantStock","supportOnline","supportText","rateCt","rateNct","rateInstant","rateGifting","paypalEmail","wiseDetails","payoneerDetails","paymentGCashEnabled","paymentGoTymeEnabled","paymentPayPalEnabled","paymentWiseEnabled","paymentPayoneerEnabled","shopBannerEnabled","shopBannerText","maintenanceMode"];
+  const allowed=["instantStock","supportOnline","supportText","rateCt","rateNct","rateInstant","rateGifting","paypalEmail","wiseDetails","payoneerDetails","paymentGCashEnabled","paymentGoTymeEnabled","paymentPayPalEnabled","paymentWiseEnabled","paymentPayoneerEnabled","shopBannerEnabled","shopBannerText","maintenanceMode","businessName","businessOwnerDisplay","businessEmail","businessPhone","businessAddress","supportHours","facebookUrl","discordUrl","trustNotice","publicStatsEnabled","publicCompletedCount","publicReviewCount","publicAverageRating","tutorialTitle","tutorialVideoUrl","tutorialVideoEnabled","languageDefault","languageAutoDetect"];
   for(const key of allowed){
     if(req.body[key]===undefined)continue;
     const map={
       instantStock:"instant_stock",supportOnline:"support_online",supportText:"support_text",
       rateCt:"rate_ct",rateNct:"rate_nct",rateInstant:"rate_instant",rateGifting:"rate_gifting",
-      paypalEmail:"paypal_email",wiseDetails:"wise_details",payoneerDetails:"payoneer_details",paymentGCashEnabled:"payment_gcash_enabled",paymentGoTymeEnabled:"payment_gotyme_enabled",paymentPayPalEnabled:"payment_paypal_enabled",paymentWiseEnabled:"payment_wise_enabled",paymentPayoneerEnabled:"payment_payoneer_enabled",shopBannerEnabled:"shop_banner_enabled",shopBannerText:"shop_banner_text",maintenanceMode:"maintenance_mode"
+      paypalEmail:"paypal_email",wiseDetails:"wise_details",payoneerDetails:"payoneer_details",paymentGCashEnabled:"payment_gcash_enabled",paymentGoTymeEnabled:"payment_gotyme_enabled",paymentPayPalEnabled:"payment_paypal_enabled",paymentWiseEnabled:"payment_wise_enabled",paymentPayoneerEnabled:"payment_payoneer_enabled",shopBannerEnabled:"shop_banner_enabled",shopBannerText:"shop_banner_text",maintenanceMode:"maintenance_mode",
+      businessName:"business_name",businessOwnerDisplay:"business_owner_display",businessEmail:"business_email",
+      businessPhone:"business_phone",businessAddress:"business_address",supportHours:"support_hours",
+      facebookUrl:"facebook_url",discordUrl:"discord_url",trustNotice:"trust_notice",
+      publicStatsEnabled:"public_stats_enabled",publicCompletedCount:"public_completed_count",
+      publicReviewCount:"public_review_count",publicAverageRating:"public_average_rating",
+      tutorialTitle:"tutorial_title",tutorialVideoUrl:"tutorial_video_url",
+      tutorialVideoEnabled:"tutorial_video_enabled",languageDefault:"language_default",
+      languageAutoDetect:"language_auto_detect"
     };
     let value=req.body[key];
-    if(["supportOnline","paymentGCashEnabled","paymentGoTymeEnabled","paymentPayPalEnabled","paymentWiseEnabled","paymentPayoneerEnabled","shopBannerEnabled","maintenanceMode"].includes(key))value=Boolean(value)?"true":"false";
+    if(["supportOnline","paymentGCashEnabled","paymentGoTymeEnabled","paymentPayPalEnabled","paymentWiseEnabled","paymentPayoneerEnabled","shopBannerEnabled","maintenanceMode","publicStatsEnabled","publicCompletedCount","publicReviewCount","publicAverageRating","tutorialVideoEnabled","languageAutoDetect"].includes(key))value=Boolean(value)?"true":"false";
     updateSetting(map[key],value);
   }
   res.json(settingsObject());
@@ -1111,7 +1133,7 @@ app.use((error,_,res,__)=>{
 });
 
 app.listen(PORT,()=>{
-  console.log(`RSR Shop V7.5 Tutorial & Analytics running on port ${PORT}`);
+  console.log(`RSR Shop V8 Multilanguage & Editable Tutorial running on port ${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
 });

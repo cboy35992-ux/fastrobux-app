@@ -1,0 +1,30 @@
+RSR SHOP V8 — MULTILANGUAGE & EDITABLE TUTORIAL
+
+ADMIN-EDITABLE TUTORIAL / REELS
+- Admin can change the tutorial title and video/reel URL anytime.
+- No GitHub commit or Render redeploy is required after saving.
+- YouTube Shorts, standard YouTube links, youtu.be links and embed links are embedded automatically.
+- TikTok/Facebook/other reel links show a safe “Open Tutorial Reel” button.
+
+LANGUAGE SYSTEM
+- English
+- Filipino / Tagalog
+- Cebuano / Bisaya
+- Spanish
+- Portuguese
+- Vietnamese
+- Language selector appears in the site navigation.
+- The selected language is remembered on the buyer’s device.
+- Browser-language detection can be enabled or disabled by admin.
+- Admin chooses the default language.
+- Essential navigation, method, checkout, tutorial and status wording changes instantly without a page reload.
+
+iOS INSTALLATION
+- Install button is visible on iPhone/iPad.
+- Tapping it opens correct Safari “Add to Home Screen” instructions.
+- Detects Facebook/Messenger/Instagram in-app browsers and tells buyers to open Safari.
+- Detects when the app is already installed.
+
+IMPORTANT
+- This is an installable PWA/Home Screen web app. It is not automatically an Apple App Store listing.
+- Existing customer accounts, orders, CT/NCT Game Pass verification, receipts, chat and analytics are preserved.

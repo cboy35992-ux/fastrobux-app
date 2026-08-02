@@ -1,8 +1,8 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "7.5.0",
+  "version": "8.0.0",
   "private": true,
-  "description": "RSR Shop V7.5 with customer tutorials, YouTube guide, clearer CT/NCT/Instant/Gifting instructions, and expanded admin analytics.",
+  "description": "RSR Shop V8 with admin-editable tutorial/reels, multilingual customer UI, remembered language selection, and improved iOS installation guidance.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

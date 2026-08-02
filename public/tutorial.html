@@ -28,17 +28,17 @@
     </div>
   </section>
 
-  <section id="video" class="panel tutorial-video-panel">
-    <div class="section-title"><span>▶</span><div><h2>Watch the quick video tutorial</h2><p>This video demonstrates the process visually.</p></div></div>
+  <section id="video" class="panel tutorial-video-panel" data-tutorial-section>
+    <div class="section-title"><span>▶</span><div><h2 data-tutorial-title>Watch the quick video tutorial</h2><p>This video demonstrates the process visually.</p></div></div>
     <div class="shorts-frame">
-      <iframe
+      <iframe data-tutorial-frame
         src="https://www.youtube.com/embed/1i6fGhZ5GL0"
         title="Reck Shop Game Pass tutorial"
         loading="lazy"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowfullscreen></iframe>
-    </div>
-    <p class="muted center-text">Video not loading? <a href="https://www.youtube.com/shorts/1i6fGhZ5GL0" target="_blank" rel="noopener">Open it directly on YouTube.</a></p>
+    </div><div data-non-youtube-tutorial class="hidden external-video-card"><p>This reel cannot be embedded here, but you can open it safely in a new tab.</p><a class="button primary" data-tutorial-link target="_blank" rel="noopener">Open Tutorial Reel</a></div>
+    <p class="muted center-text">Video not loading? <a href="tutorial.html" data-tutorial-link target="_blank" rel="noopener">Open the tutorial directly.</a></p>
   </section>
 
   <section class="panel tutorial-overview">
@@ -170,5 +170,9 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("/service-worker.js").catch(() => {}));
 }
 </script>
+
+<script src="i18n.js" defer></script>
+<script src="install.js" defer></script>
+<script src="tutorial-media.js" defer></script>
 </body>
 </html>

@@ -29,8 +29,35 @@
 
 <section class="panel"><h2>Promo Codes</h2><div class="two-columns"><label>Code<input id="promoNewCode"></label><label>Discount Type<select id="promoType"><option value="percent">Percent</option><option value="fixed">Fixed PHP</option></select></label><label>Discount Value<input id="promoValue" type="number"></label><label>Minimum Payment<input id="promoMinimum" type="number"></label><label>Maximum Uses<input id="promoMax" type="number"></label><label>Expires At<input id="promoExpires" type="datetime-local"></label></div><button id="createPromo" class="button secondary">Create Promo</button><div id="promoList" class="orders-list"></div></section><section class="admin-grid"><section class="panel"><div class="order-header"><h2>Orders</h2><button id="refresh">Refresh</button></div><div class="search-row"><input id="search" placeholder="Order, username or reference"><button id="searchButton">Search</button></div><label>Status Filter<select id="statusFilter"><option value="">All</option><option>Pending Payment Review</option><option>Approved</option><option>Processing</option><option>Ready for Delivery</option><option>Completed</option><option>Declined</option></select></label><div id="orders" class="orders-list"></div></section><section id="selectedPanel" class="panel hidden"><div class="order-header"><div><h2 id="selectedNumber"></h2><span id="selectedStatus" class="status-pill"></span></div><a id="adminReceipt" class="button secondary" target="_blank">Receipt</a></div><div id="selectedDetails" class="details-grid"></div><div class="status-actions"><button data-status="Approved">Approve</button><button data-status="Processing">Processing</button><button data-status="Ready for Delivery">Ready</button><button data-status="Completed">Complete</button><button class="danger" data-status="Declined">Decline</button></div><div id="adminMessages" class="chat-box"></div><div class="search-row"><input id="adminChat"><button id="adminSend">Reply</button></div></section></section><section class="panel"><h2>Review Moderation</h2><div id="reviewList" class="orders-list"></div></section><section class="panel"><div class="order-header"><h2>Backups & Audit</h2><button id="createBackup">Create Backup</button></div><div id="auditList" class="orders-list"></div></section>
 <section class="analytics-grid">
-  <section class="panel"><h2>Orders by Method</h2><div id="methodAnalytics" class="analytics-bars"></div></section>
+  
+<section class="panel">
+  <h2>Tutorial / Reels Settings</h2>
+  <p class="muted">Change the tutorial video anytime. YouTube videos and Shorts can be embedded automatically. Other reel links open in a new tab.</p>
+  <div class="two-columns">
+    <label>Tutorial Title<input id="tutorialTitle" placeholder="How to Create a Roblox Game Pass"></label>
+    <label>Tutorial Video or Reel URL<input id="tutorialVideoUrl" type="url" placeholder="https://www.youtube.com/shorts/..."></label>
+  </div>
+  <label class="check"><input id="tutorialVideoEnabled" type="checkbox"> Show tutorial video publicly</label>
+  <div class="two-columns">
+    <label>Default Language
+      <select id="languageDefault">
+        <option value="en">English</option>
+        <option value="fil">Filipino / Tagalog</option>
+        <option value="ceb">Cebuano / Bisaya</option>
+        <option value="es">Español</option>
+        <option value="pt">Português</option>
+        <option value="vi">Tiếng Việt</option>
+      </select>
+    </label>
+    <label class="check"><input id="languageAutoDetect" type="checkbox"> Automatically detect the buyer's browser language</label>
+  </div>
+  <button id="saveTutorialSettings" class="button primary full">Save Tutorial & Language Settings</button>
+</section>
+<section class="panel"><h2>Orders by Method</h2><div id="methodAnalytics" class="analytics-bars"></div></section>
   <section class="panel"><h2>Orders by Payment</h2><div id="paymentAnalytics" class="analytics-bars"></div></section>
   <section class="panel"><h2>Status Distribution</h2><div id="statusAnalytics" class="analytics-bars"></div></section>
 </section>
-<section class="panel"><h2>Last 30 Days</h2><div class="table-wrap"><table class="analytics-table"><thead><tr><th>Date</th><th>Orders</th><th>Revenue</th></tr></thead><tbody id="dailyAnalytics"></tbody></table></div></section></div></main><script src="admin.js"></script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script></body></html>
+<section class="panel"><h2>Last 30 Days</h2><div class="table-wrap"><table class="analytics-table"><thead><tr><th>Date</th><th>Orders</th><th>Revenue</th></tr></thead><tbody id="dailyAnalytics"></tbody></table></div></section></div></main><script src="admin.js"></script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script>
+<script src="i18n.js" defer></script>
+<script src="install.js" defer></script>
+</body></html>

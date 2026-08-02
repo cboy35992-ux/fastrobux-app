@@ -213,3 +213,10 @@ This is an installable PWA. App Store publication is a separate process requirin
 
 
 V7.5 adds tutorial.html, the supplied YouTube Shorts tutorial, clearer customer instructions and expanded admin analytics.
+
+
+RSR SHOP V8
+- Tutorial/reel URL is editable at Admin → Tutorial / Reels Settings.
+- Buyers can switch between English, Filipino, Cebuano, Spanish, Portuguese and Vietnamese.
+- Admin can select the default language and enable browser-language detection.
+- iPhone users receive Safari Add to Home Screen instructions.

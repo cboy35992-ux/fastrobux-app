@@ -1,6 +1,6 @@
 {
-  "name": "RSR Shop",
-  "short_name": "RSR Shop",
+  "name": "Reck Shop",
+  "short_name": "Reck Shop",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
@@ -26,11 +26,11 @@
       "purpose": "any maskable"
     }
   ],
-  "description": "Tracked Reck Shop orders with buyer tutorials, private receipts, support and installable Android/iOS home-screen experience.",
+  "description": "Multilingual tracked Roblox marketplace orders with tutorials, receipts and private support.",
   "id": "/",
   "display_override": [
-    "window-controls-overlay",
-    "standalone"
+    "standalone",
+    "minimal-ui"
   ],
   "orientation": "portrait-primary",
   "categories": [
@@ -82,5 +82,7 @@
         }
       ]
     }
-  ]
+  ],
+  "lang": "en",
+  "dir": "ltr"
 }

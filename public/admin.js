@@ -11,7 +11,12 @@ $("trustNotice").value=s.business?.trustNotice||"";
 $("publicStatsEnabled").checked=s.publicStats?.enabled!==false;
 $("publicCompletedCount").checked=s.publicStats?.showCompleted!==false;
 $("publicReviewCount").checked=s.publicStats?.showReviewCount!==false;
-$("publicAverageRating").checked=s.publicStats?.showAverageRating!==false;$("orders").innerHTML=d.orders.map(o=>`<button class="order-row" data-order="${esc(o.orderNumber)}"><div><b>${esc(o.orderNumber)}</b><span>${esc(o.displayName)} (@${esc(o.username)})</span></div><div><b>${Number(o.amount).toLocaleString()} Robux</b><span>₱${Number(o.totalPayment).toFixed(2)}</span></div><span class="status-pill">${esc(o.status)}</span></button>`).join("")||'<p class="muted">No matching orders.</p>';document.querySelectorAll("[data-order]").forEach(b=>b.onclick=()=>openOrder(b.dataset.order))}async function openOrder(n){selected=await api(`/api/admin/orders/${encodeURIComponent(n)}`);$("selectedPanel").classList.remove("hidden");$("selectedNumber").textContent=selected.orderNumber;$("selectedStatus").textContent=selected.status;$("adminReceipt").href=`/api/admin/orders/${encodeURIComponent(n)}/receipt`;$("adminReceipt").onclick=e=>{e.preventDefault();fetch($("adminReceipt").href,{headers:{"x-admin-key":key}}).then(r=>r.blob()).then(b=>window.open(URL.createObjectURL(b)))};$("selectedDetails").innerHTML=`<div><span>Roblox</span><b>${esc(selected.displayName)} (@${esc(selected.username)})</b></div><div><span>Method</span><b>${esc(selected.method)}</b></div><div><span>Amount</span><b>${Number(selected.amount).toLocaleString()} Robux</b></div><div><span>Total</span><b>₱${Number(selected.totalPayment).toFixed(2)}</b></div><div><span>Sender</span><b>${esc(selected.senderName)}</b></div><div><span>Reference</span><b>${esc(selected.referenceNumber)}</b></div>${selected.gamePassUrl?`<div><span>Buyer Game Pass</span><b><a href="${esc(selected.gamePassUrl)}" target="_blank" rel="noopener">Open Game Pass — ${Number(selected.gamePassPrice).toLocaleString()} Robux</a></b></div>`:""}`;$("adminMessages").innerHTML=selected.messages.map(m=>`<div class="chat-message ${esc(m.sender)}"><b>${esc(m.sender)}</b><p>${esc(m.text)}</p><small>${new Date(m.created_at).toLocaleString()}</small></div>`).join("");$("adminMessages").scrollTop=$("adminMessages").scrollHeight;unread()}async function analytics(){
+$("publicAverageRating").checked=s.publicStats?.showAverageRating!==false;
+$("tutorialTitle").value=s.tutorial?.title||"How to Create a Roblox Game Pass";
+$("tutorialVideoUrl").value=s.tutorial?.videoUrl||"";
+$("tutorialVideoEnabled").checked=s.tutorial?.enabled!==false;
+$("languageDefault").value=s.language?.default||"en";
+$("languageAutoDetect").checked=s.language?.autoDetect!==false;$("orders").innerHTML=d.orders.map(o=>`<button class="order-row" data-order="${esc(o.orderNumber)}"><div><b>${esc(o.orderNumber)}</b><span>${esc(o.displayName)} (@${esc(o.username)})</span></div><div><b>${Number(o.amount).toLocaleString()} Robux</b><span>₱${Number(o.totalPayment).toFixed(2)}</span></div><span class="status-pill">${esc(o.status)}</span></button>`).join("")||'<p class="muted">No matching orders.</p>';document.querySelectorAll("[data-order]").forEach(b=>b.onclick=()=>openOrder(b.dataset.order))}async function openOrder(n){selected=await api(`/api/admin/orders/${encodeURIComponent(n)}`);$("selectedPanel").classList.remove("hidden");$("selectedNumber").textContent=selected.orderNumber;$("selectedStatus").textContent=selected.status;$("adminReceipt").href=`/api/admin/orders/${encodeURIComponent(n)}/receipt`;$("adminReceipt").onclick=e=>{e.preventDefault();fetch($("adminReceipt").href,{headers:{"x-admin-key":key}}).then(r=>r.blob()).then(b=>window.open(URL.createObjectURL(b)))};$("selectedDetails").innerHTML=`<div><span>Roblox</span><b>${esc(selected.displayName)} (@${esc(selected.username)})</b></div><div><span>Method</span><b>${esc(selected.method)}</b></div><div><span>Amount</span><b>${Number(selected.amount).toLocaleString()} Robux</b></div><div><span>Total</span><b>₱${Number(selected.totalPayment).toFixed(2)}</b></div><div><span>Sender</span><b>${esc(selected.senderName)}</b></div><div><span>Reference</span><b>${esc(selected.referenceNumber)}</b></div>${selected.gamePassUrl?`<div><span>Buyer Game Pass</span><b><a href="${esc(selected.gamePassUrl)}" target="_blank" rel="noopener">Open Game Pass — ${Number(selected.gamePassPrice).toLocaleString()} Robux</a></b></div>`:""}`;$("adminMessages").innerHTML=selected.messages.map(m=>`<div class="chat-message ${esc(m.sender)}"><b>${esc(m.sender)}</b><p>${esc(m.text)}</p><small>${new Date(m.created_at).toLocaleString()}</small></div>`).join("");$("adminMessages").scrollTop=$("adminMessages").scrollHeight;unread()}async function analytics(){
   const d=await api("/api/admin/analytics");
   $("totalOrders").textContent=d.totals.orders;
   $("pendingOrders").textContent=d.totals.pending||0;
@@ -57,6 +62,23 @@ $("saveTrustSettings").onclick=async()=>{
       publicAverageRating:$("publicAverageRating").checked
     })});
     alert("Trust Center settings saved.");
+    loadOrders();
+  }catch(e){alert(e.message)}
+};
+
+
+$("saveTutorialSettings").onclick=async()=>{
+  try{
+    const url=$("tutorialVideoUrl").value.trim();
+    if(url && !/^https?:\/\//i.test(url)) throw new Error("Enter a complete video URL beginning with http:// or https://");
+    await api("/api/admin/settings",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      tutorialTitle:$("tutorialTitle").value.trim()||"How to Create a Roblox Game Pass",
+      tutorialVideoUrl:url,
+      tutorialVideoEnabled:$("tutorialVideoEnabled").checked,
+      languageDefault:$("languageDefault").value,
+      languageAutoDetect:$("languageAutoDetect").checked
+    })});
+    alert("Tutorial and language settings saved. The public site updates without a redeploy.");
     loadOrders();
   }catch(e){alert(e.message)}
 };
