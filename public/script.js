@@ -256,3 +256,22 @@ window.fetch = async (input, init = {}) => {
 };
 
 setTimeout(updateGamepassRequirements, 0);
+
+
+// V7.2 mobile installation helper (Android + iOS).
+(() => {
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const modal = document.getElementById('iosInstallModal');
+  const openIosHelp = () => modal && modal.classList.remove('hidden');
+  const closeIosHelp = () => modal && modal.classList.add('hidden');
+  document.getElementById('closeIosInstall')?.addEventListener('click', closeIosHelp);
+  document.getElementById('closeIosInstall2')?.addEventListener('click', closeIosHelp);
+  modal?.addEventListener('click', e => { if (e.target === modal) closeIosHelp(); });
+  if (isIos && !isStandalone) {
+    ['installApp','installAppSecondary'].forEach(id => {
+      const btn=document.getElementById(id);
+      if(btn){ btn.classList.remove('hidden'); btn.addEventListener('click', openIosHelp); }
+    });
+  }
+})();

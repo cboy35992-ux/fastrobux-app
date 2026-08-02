@@ -183,3 +183,30 @@ CT / NCT improvements:
 IMPORTANT:
 Test with a low-value private Game Pass in staging first.
 Do not ask customers for Roblox passwords, cookies or verification codes.
+
+
+RSR SHOP V7.2 MOBILE & TRUST EDITION
+===================================
+Included:
+- Updated GCash and GoTyme QR images supplied by the owner.
+- Android install support through the web app manifest.
+- iPhone/iPad Add to Home Screen instructions.
+- New Android and iOS app icons.
+- Visible official Facebook, email, phone and Philippines location.
+- Contact values remain editable from Admin > Trust Center & Business Profile.
+- Existing CT/NCT Game Pass verification remains included.
+
+Official contact defaults:
+Facebook: https://www.facebook.com/profile.php?id=61592736479803
+Email: reckshopemergencycontact@gmail.com
+Phone: 09121656529
+Location: Philippines
+
+DEPLOYMENT
+1. Upload all extracted project files to the root of the GitHub repository.
+2. Commit with: Upgrade to RSR Shop V7.2 Mobile & Trust Edition
+3. In Render, select Manual Deploy > Deploy latest commit.
+4. After deployment, hard-refresh the browser or clear the old service worker cache.
+
+IOS NOTE
+This is an installable PWA. App Store publication is a separate process requiring an Apple Developer account and Apple review.

@@ -1,8 +1,8 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "7.1.0",
+  "version": "7.2.0",
   "private": true,
-  "description": "RSR Shop V7.1 Game Pass Verified with exact CT/NCT price validation, editable trust details and secure server-side checkout checks.",
+  "description": "RSR Shop V7.2 Mobile & Trust Edition with Android/iOS PWA support, updated payment QR codes, editable contact information and CT/NCT verification.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -1,0 +1,7 @@
+RSR Shop V7.2 changes
+- Updated GCash and GoTyme QR codes
+- Android and iOS PWA icons
+- iPhone Add to Home Screen guide
+- Visible official contact section
+- Version/branding corrected from V5 to V7.2
+- Service worker cache bumped to rsr-shop-v7.2

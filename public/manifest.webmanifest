@@ -1,11 +1,11 @@
 {
-  "name": "Reck Shop",
-  "short_name": "Reck Shop",
+  "name": "RSR Shop",
+  "short_name": "RSR Shop",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#070b16",
-  "theme_color": "#8b5cf6",
+  "background_color": "#0b1020",
+  "theme_color": "#7c3aed",
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -26,7 +26,7 @@
       "purpose": "any maskable"
     }
   ],
-  "description": "Tracked orders, private receipts and customer support from Reck Shop.",
+  "description": "Tracked Roblox digital orders, payment receipts and customer support.",
   "id": "/",
   "display_override": [
     "window-controls-overlay",
