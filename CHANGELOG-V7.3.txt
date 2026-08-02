@@ -1,0 +1,9 @@
+RSR SHOP V7.3 — CT/NCT BUYER GAME PASS FIX
+
+- CT and NCT now require the selected buyer Roblox username.
+- CT and NCT now require the buyer Game Pass link.
+- The buyer username is automatically copied from Roblox account verification.
+- Game Pass price is verified before checkout and checked again on the server.
+- Username, Game Pass ID, URL, name, price, and verification time are stored with the order.
+- Customer and admin order pages include a direct Open Game Pass link.
+- Fixed the previous FormData issue that prevented CT/NCT fields from being included in the submitted order.

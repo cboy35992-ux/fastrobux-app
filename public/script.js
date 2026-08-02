@@ -27,13 +27,37 @@ async function start(){
   [["rateCt","ct"],["rateNct","nct"],["rateInstant","instant"],["rateGifting","gifting"]].forEach(([id,key])=>$(id).textContent=`₱${cfg.rates[key].toLocaleString("en-PH")} / 1,000`);
   calc();loadReviews();updatePayment();
 }
-document.querySelectorAll(".method-card").forEach(b=>b.onclick=()=>{selectedMethod=b.dataset.method;discount=0;appliedPromo="";$("promoCode").value="";$("promoMessage").textContent="";document.querySelectorAll(".method-card").forEach(x=>x.classList.toggle("active",x===b));$("giftingFields").classList.toggle("hidden",selectedMethod!=="gifting");calc()});
-document.querySelectorAll(".quick button").forEach(b=>b.onclick=()=>{$("amount").value=b.dataset.amount;discount=0;appliedPromo="";calc()});$("amount").oninput=()=>{discount=0;appliedPromo="";calc()};
-$("searchRoblox").onclick=async()=>{const b=$("searchRoblox");b.disabled=true;b.textContent="Searching…";try{selectedRoblox=await api(`/api/roblox/search?username=${encodeURIComponent($("usernameSearch").value.trim())}`);$("robloxAvatar").src=selectedRoblox.avatarUrl;$("robloxDisplayName").textContent=selectedRoblox.displayName;$("robloxUsername").textContent=`@${selectedRoblox.username}`;$("robloxUserId").textContent=`User ID: ${selectedRoblox.userId}`;$("robloxResult").classList.remove("hidden")}catch(e){alert(e.message)}finally{b.disabled=false;b.textContent="Search"}};
+document.querySelectorAll(".method-card").forEach(b=>b.onclick=()=>{selectedMethod=b.dataset.method;discount=0;appliedPromo="";$("promoCode").value="";$("promoMessage").textContent="";document.querySelectorAll(".method-card").forEach(x=>x.classList.toggle("active",x===b));$("giftingFields").classList.toggle("hidden",selectedMethod!=="gifting");calc();updateGamepassRequirements()});
+document.querySelectorAll(".quick button").forEach(b=>b.onclick=()=>{$("amount").value=b.dataset.amount;discount=0;appliedPromo="";calc();updateGamepassRequirements()});$("amount").oninput=()=>{discount=0;appliedPromo="";calc();updateGamepassRequirements()};
+$("searchRoblox").onclick=async()=>{const b=$("searchRoblox");b.disabled=true;b.textContent="Searching…";try{selectedRoblox=await api(`/api/roblox/search?username=${encodeURIComponent($("usernameSearch").value.trim())}`);$("robloxAvatar").src=selectedRoblox.avatarUrl;$("robloxDisplayName").textContent=selectedRoblox.displayName;$("robloxUsername").textContent=`@${selectedRoblox.username}`;$("robloxUserId").textContent=`User ID: ${selectedRoblox.userId}`;$("robloxResult").classList.remove("hidden");if($("ctNctUsername"))$("ctNctUsername").value=selectedRoblox.username;resetGamepassVerification("Not verified");updateGamepassRequirements()}catch(e){alert(e.message)}finally{b.disabled=false;b.textContent="Search"}};
 $("applyPromo").onclick=async()=>{if(!token)return location.href="auth.html";try{const c=calc(),d=await api("/api/promo/preview",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:$("promoCode").value.trim(),subtotal:c.subtotal})});discount=d.discount||0;appliedPromo=d.code||"";$("promoMessage").className="message success";$("promoMessage").textContent=`Promo applied: −${peso(discount)}`;calc()}catch(e){discount=0;appliedPromo="";$("promoMessage").className="message error";$("promoMessage").textContent=e.message;calc()}};
 function updatePayment(){document.querySelectorAll(".payment-card").forEach(c=>c.classList.toggle("active",c.querySelector("input").checked));const method=paymentMethod();const local=method==="GCash"||method==="GoTyme Bank";$("paymentQr").classList.toggle("hidden",!local);if(method==="GCash"){$("paymentQr").src="images/gcash-qr.png";$("paymentTitle").textContent="Pay through GCash";$("paymentInstructions").textContent="Scan the QR and pay the exact amount."}else if(method==="GoTyme Bank"){$("paymentQr").src="images/gotyme-qr.png";$("paymentTitle").textContent="Pay through GoTyme Bank";$("paymentInstructions").textContent="Scan the QR using an InstaPay-supported app."}else{$("paymentTitle").textContent=`Pay through ${method}`;const map={PayPal:cfg?.paymentDetails?.paypalEmail,Wise:cfg?.paymentDetails?.wiseDetails,Payoneer:cfg?.paymentDetails?.payoneerDetails};$("paymentInstructions").textContent=map[method]||`Contact support for the current ${method} payment details before paying.`}}
 document.querySelectorAll('input[name="paymentMethod"]').forEach(i=>i.onchange=updatePayment);
-$("submitOrder").onclick=async()=>{const msg=$("submitMessage");msg.className="message";msg.textContent="";if(!token){msg.className="message error";msg.innerHTML='Please <a href="auth.html">log in or register</a> before ordering.';return}const c=calc(),receipt=$("receipt").files[0];if(!selectedRoblox)return fail("Search and select the Roblox account.");if(c.amount<=0)return fail("Enter a valid amount.");if(selectedMethod==="instant"&&c.amount<10)return fail("Instant minimum is 10 Robux.");if(selectedMethod==="instant"&&c.amount>cfg.instantStock)return fail("Not enough Instant stock.");if(selectedMethod==="gifting"&&(!$("gameName").value.trim()||!$("itemName").value.trim()))return fail("Enter the game and item name.");if(!$("senderName").value.trim())return fail("Enter the sender name.");if($("referenceNumber").value.trim().length<5)return fail("Enter a valid payment reference.");if(!receipt)return fail("Upload the receipt.");if(!$("confirm").checked)return fail("Confirm the order information.");const form=new FormData();Object.entries({methodKey:selectedMethod,amount:c.amount,promoCode:appliedPromo,paymentMethod:paymentMethod(),senderName:$("senderName").value.trim(),referenceNumber:$("referenceNumber").value.trim(),robloxUserId:selectedRoblox.userId,username:selectedRoblox.username,robloxDisplayName:selectedRoblox.displayName,robloxAvatarUrl:selectedRoblox.avatarUrl,gameName:$("gameName").value.trim(),itemName:$("itemName").value.trim()}).forEach(([k,v])=>form.append(k,v));form.append("receipt",receipt);const b=$("submitOrder");b.disabled=true;b.textContent="Submitting…";try{const d=await api("/api/orders",{method:"POST",body:form});msg.className="message success";msg.innerHTML=`Order created: <b>${d.orderNumber}</b><br><a href="dashboard.html">Open your dashboard</a>`;cfg=await api("/api/settings");$("stockDisplay").textContent=`${num(cfg.instantStock)} Robux`}catch(e){fail(e.message)}finally{b.disabled=false;b.textContent="Submit Order"}function fail(t){msg.className="message error";msg.textContent=t}};
+$("submitOrder").onclick=async()=>{
+  const msg=$("submitMessage");msg.className="message";msg.textContent="";
+  const fail=t=>{msg.className="message error";msg.textContent=t};
+  if(!token){msg.className="message error";msg.innerHTML='Please <a href="auth.html">log in or register</a> before ordering.';return}
+  const c=calc(),receipt=$("receipt").files[0];
+  if(!selectedRoblox)return fail("Search and select the buyer's Roblox account.");
+  if(c.amount<=0)return fail("Enter a valid amount.");
+  if(["ct","nct"].includes(selectedMethod)){
+    if(!$("gamepassLink").value.trim())return fail("Paste the buyer's Roblox Game Pass link.");
+    if(!verifiedGamePassData || verifiedGamePassData.methodKey!==selectedMethod || Number(verifiedGamePassData.customerAmount)!==c.amount)return fail("Verify the Roblox username and exact Game Pass price before submitting.");
+  }
+  if(selectedMethod==="instant"&&c.amount<10)return fail("Instant minimum is 10 Robux.");
+  if(selectedMethod==="instant"&&c.amount>cfg.instantStock)return fail("Not enough Instant stock.");
+  if(selectedMethod==="gifting"&&(!$("gameName").value.trim()||!$("itemName").value.trim()))return fail("Enter the game and item name.");
+  if(!$("senderName").value.trim())return fail("Enter the sender name.");
+  if($("referenceNumber").value.trim().length<5)return fail("Enter a valid payment reference.");
+  if(!receipt)return fail("Upload the receipt.");
+  if(!$("confirm").checked)return fail("Confirm the order information.");
+  const form=new FormData();
+  const fields={methodKey:selectedMethod,amount:c.amount,promoCode:appliedPromo,paymentMethod:paymentMethod(),senderName:$("senderName").value.trim(),referenceNumber:$("referenceNumber").value.trim(),robloxUserId:selectedRoblox.userId,username:selectedRoblox.username,robloxUsername:selectedRoblox.username,robloxDisplayName:selectedRoblox.displayName,robloxAvatarUrl:selectedRoblox.avatarUrl,gameName:$("gameName").value.trim(),itemName:$("itemName").value.trim(),gamePassLink:["ct","nct"].includes(selectedMethod)?$("gamepassLink").value.trim():"",gamePassId:verifiedGamePassData?.gamePass?.id||""};
+  Object.entries(fields).forEach(([k,v])=>form.append(k,v));form.append("receipt",receipt);
+  const b=$("submitOrder");b.disabled=true;b.textContent="Submitting…";
+  try{const d=await api("/api/orders",{method:"POST",body:form});msg.className="message success";msg.innerHTML=`Order created: <b>${d.orderNumber}</b><br>The Roblox username and Game Pass link were sent with the order.<br><a href="dashboard.html">Open your dashboard</a>`;cfg=await api("/api/settings");$("stockDisplay").textContent=`${num(cfg.instantStock)} Robux`}catch(e){fail(e.message)}finally{b.disabled=false;b.textContent="Submit Order"}
+};
+
 async function loadReviews(){try{const d=await api("/api/reviews");$("reviews").innerHTML=d.reviews.length?d.reviews.map(r=>`<article class="review-card"><div class="stars">${"★".repeat(r.rating)}${"☆".repeat(5-r.rating)}</div><p>${escapeHtml(r.comment)}</p><b>${escapeHtml(r.full_name)}</b><small class="muted">${escapeHtml(r.method)}</small></article>`).join(""):'<p class="muted">No published reviews yet.</p>'}catch{$("reviews").innerHTML='<p class="muted">Reviews are temporarily unavailable.</p>'}}
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 start().catch(e=>{$("submitMessage").className="message error";$("submitMessage").textContent=`Connection problem: ${e.message}`});
@@ -105,11 +129,7 @@ const gamepassElements = {
   card: document.getElementById("verifiedGamepassCard")
 };
 
-function currentMethodKeyForGamepass() {
-  const checked = document.querySelector('input[name="method"]:checked, input[name="methodKey"]:checked');
-  if (checked) return String(checked.value || "").toLowerCase();
-  return String(window.selectedMethodKey || window.methodKey || "").toLowerCase();
-}
+function currentMethodKeyForGamepass() { return String(selectedMethod || "").toLowerCase(); }
 
 function currentDesiredAmountForGamepass() {
   const candidates = [
@@ -179,11 +199,11 @@ if (gamepassElements.verify) {
   gamepassElements.verify.addEventListener("click", async () => {
     const methodKey = currentMethodKeyForGamepass();
     const amount = currentDesiredAmountForGamepass();
-    const username = gamepassElements.username?.value.trim() || "";
+    const username = selectedRoblox?.username || gamepassElements.username?.value.trim() || "";
     const gamePassLink = gamepassElements.link?.value.trim() || "";
 
     if (!["ct","nct"].includes(methodKey)) return;
-    if (!username) return showToast("Enter the Roblox username.", "error");
+    if (!selectedRoblox) return showToast("Search and select the buyer Roblox username first.", "error");
     if (!gamePassLink) return showToast("Paste the Roblox Game Pass link.", "error");
     if (!amount) return showToast("Enter the desired Robux amount.", "error");
 
@@ -216,44 +236,6 @@ if (gamepassElements.verify) {
     }
   });
 }
-
-// Add CT/NCT fields to all JSON order requests and block unverified submission.
-const originalFetchForGamepass = window.fetch.bind(window);
-window.fetch = async (input, init = {}) => {
-  try {
-    const url = typeof input === "string" ? input : input.url;
-    const method = String(init.method || "GET").toUpperCase();
-    if (method === "POST" && /\/api\/orders(?:$|\?)/.test(url) && init.body) {
-      const payload = JSON.parse(init.body);
-      const methodKey = String(payload.methodKey || currentMethodKeyForGamepass()).toLowerCase();
-
-      if (methodKey === "ct" || methodKey === "nct") {
-        updateGamepassRequirements();
-        const amount = Number(payload.amount || currentDesiredAmountForGamepass());
-        if (!verifiedGamePassData ||
-            verifiedGamePassData.methodKey !== methodKey ||
-            Number(verifiedGamePassData.customerAmount) !== Math.floor(amount)) {
-          throw new Error("Verify the Roblox username and exact Game Pass price before continuing.");
-        }
-        payload.robloxUsername = gamepassElements.username.value.trim();
-        payload.gamePassLink = gamepassElements.link.value.trim();
-        payload.gamePassId = verifiedGamePassData.gamePass.id;
-        init.body = JSON.stringify(payload);
-      }
-    }
-  } catch (error) {
-    if (error instanceof SyntaxError) {
-      // Preserve non-JSON requests.
-    } else {
-      showToast(error.message, "error");
-      return new Response(JSON.stringify({error:error.message}), {
-        status: 400,
-        headers: {"Content-Type":"application/json"}
-      });
-    }
-  }
-  return originalFetchForGamepass(input, init);
-};
 
 setTimeout(updateGamepassRequirements, 0);
 

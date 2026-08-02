@@ -156,6 +156,12 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE TABLE IF NOT EXISTS admin_audit (id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT NOT NULL, details TEXT, created_at TEXT NOT NULL);
 `);
 
+// V7.3: keep buyer Game Pass details on every CT/NCT order.
+const existingOrderColumns = new Set(db.prepare("PRAGMA table_info(orders)").all().map(c=>c.name));
+for (const [column,type] of [["gamepass_id","TEXT"],["gamepass_url","TEXT"],["gamepass_name","TEXT"],["gamepass_price","INTEGER"],["gamepass_verified_at","TEXT"]]) {
+  if (!existingOrderColumns.has(column)) db.exec(`ALTER TABLE orders ADD COLUMN ${column} ${type}`);
+}
+
 const defaultSettings = {
   instant_stock: "50000",
   support_online: "true",
@@ -349,6 +355,11 @@ function serializeOrder(row, includePrivate=false) {
     avatarUrl: row.avatar_url,
     gameName: row.game_name,
     itemName: row.item_name,
+    gamePassId: row.gamepass_id,
+    gamePassUrl: row.gamepass_url,
+    gamePassName: row.gamepass_name,
+    gamePassPrice: row.gamepass_price,
+    gamePassVerifiedAt: row.gamepass_verified_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     reservedStock: row.reserved_stock,
@@ -822,8 +833,9 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
           id,order_number,private_token_hash,customer_id,status,method,tax_option,amount,receive_amount,
           required_pass_price,subtotal,discount,total_payment,promo_code,payment_method,sender_name,
           reference_number,roblox_user_id,username,display_name,avatar_url,game_name,item_name,
+          gamepass_id,gamepass_url,gamepass_name,gamepass_price,gamepass_verified_at,
           receipt_filename,reserved_stock,reservation_expires_at,created_at,updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `).run(
         id,number,hashToken(privateToken),req.customer.id,"Pending Payment Review",methodNames[methodKey],
         methodKey==="ct"?"Covered Tax":methodKey==="nct"?"Not Covered Tax":"N/A",
@@ -831,6 +843,7 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
         String(body.senderName||"").trim(),String(body.referenceNumber||"").trim(),
         String(body.robloxUserId||""),String(body.username||""),String(body.robloxDisplayName||body.username||""),
         String(body.robloxAvatarUrl||""),String(body.gameName||""),String(body.itemName||""),
+        verifiedGamePass?.id||null,verifiedGamePass?.url||null,verifiedGamePass?.name||null,verifiedGamePass?.actualPrice||null,verifiedGamePass?created:null,
         req.file.filename,reserved,reservationExpiresAt,created,created
       );
       db.prepare("INSERT INTO order_history(order_id,status,created_at) VALUES (?,?,?)").run(id,"Pending Payment Review",created);
