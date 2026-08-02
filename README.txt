@@ -220,3 +220,6 @@ RSR SHOP V8
 - Buyers can switch between English, Filipino, Cebuano, Spanish, Portuguese and Vietnamese.
 - Admin can select the default language and enable browser-language detection.
 - iPhone users receive Safari Add to Home Screen instructions.
+
+
+V9.4 adds editable delivery estimates, loyalty summaries, CSV order export, mobile navigation and final security/stability improvements.

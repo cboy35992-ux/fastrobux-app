@@ -198,7 +198,13 @@ const defaultSettings = {
   tutorial_video_url: "https://www.youtube.com/shorts/1i6fGhZ5GL0",
   tutorial_video_enabled: "true",
   language_default: "en",
-  language_auto_detect: "true"
+  language_auto_detect: "true",
+  eta_ct: "10–30 minutes",
+  eta_nct: "10–30 minutes",
+  eta_instant: "5–15 minutes",
+  eta_gifting: "15–60 minutes",
+  pending_notice: "Roblox may hold Game Pass proceeds in Pending Robux before release.",
+  low_stock_threshold: "5000"
 };
 const setSettingStmt = db.prepare("INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)");
 for (const [key, value] of Object.entries(defaultSettings)) setSettingStmt.run(key, value);
@@ -295,6 +301,16 @@ function settingsObject() {
     language: {
       default: setting("language_default") || "en",
       autoDetect: setting("language_auto_detect") !== "false"
+    },
+    delivery: {
+      ct: setting("eta_ct") || "10–30 minutes",
+      nct: setting("eta_nct") || "10–30 minutes",
+      instant: setting("eta_instant") || "5–15 minutes",
+      gifting: setting("eta_gifting") || "15–60 minutes",
+      pendingNotice: setting("pending_notice") || "Roblox may hold Game Pass proceeds in Pending Robux before release."
+    },
+    stock: {
+      lowThreshold: Number(setting("low_stock_threshold") || 5000)
     }
   };
 }
@@ -1014,7 +1030,7 @@ app.patch("/api/admin/orders/:number/status",requireAdmin,(req,res)=>{
 });
 
 app.patch("/api/admin/settings",requireAdmin,(req,res)=>{
-  const allowed=["instantStock","supportOnline","supportText","rateCt","rateNct","rateInstant","rateGifting","paypalEmail","wiseDetails","payoneerDetails","paymentGCashEnabled","paymentGoTymeEnabled","paymentPayPalEnabled","paymentWiseEnabled","paymentPayoneerEnabled","shopBannerEnabled","shopBannerText","maintenanceMode","businessName","businessOwnerDisplay","businessEmail","businessPhone","businessAddress","supportHours","facebookUrl","discordUrl","trustNotice","publicStatsEnabled","publicCompletedCount","publicReviewCount","publicAverageRating","tutorialTitle","tutorialVideoUrl","tutorialVideoEnabled","languageDefault","languageAutoDetect"];
+  const allowed=["instantStock","supportOnline","supportText","rateCt","rateNct","rateInstant","rateGifting","paypalEmail","wiseDetails","payoneerDetails","paymentGCashEnabled","paymentGoTymeEnabled","paymentPayPalEnabled","paymentWiseEnabled","paymentPayoneerEnabled","shopBannerEnabled","shopBannerText","maintenanceMode","businessName","businessOwnerDisplay","businessEmail","businessPhone","businessAddress","supportHours","facebookUrl","discordUrl","trustNotice","publicStatsEnabled","publicCompletedCount","publicReviewCount","publicAverageRating","tutorialTitle","tutorialVideoUrl","tutorialVideoEnabled","languageDefault","languageAutoDetect","etaCt","etaNct","etaInstant","etaGifting","pendingNotice","lowStockThreshold"];
   for(const key of allowed){
     if(req.body[key]===undefined)continue;
     const map={
@@ -1028,7 +1044,7 @@ app.patch("/api/admin/settings",requireAdmin,(req,res)=>{
       publicReviewCount:"public_review_count",publicAverageRating:"public_average_rating",
       tutorialTitle:"tutorial_title",tutorialVideoUrl:"tutorial_video_url",
       tutorialVideoEnabled:"tutorial_video_enabled",languageDefault:"language_default",
-      languageAutoDetect:"language_auto_detect"
+      languageAutoDetect:"language_auto_detect",etaCt:"eta_ct",etaNct:"eta_nct",etaInstant:"eta_instant",etaGifting:"eta_gifting",pendingNotice:"pending_notice",lowStockThreshold:"low_stock_threshold"
     };
     let value=req.body[key];
     if(["supportOnline","paymentGCashEnabled","paymentGoTymeEnabled","paymentPayPalEnabled","paymentWiseEnabled","paymentPayoneerEnabled","shopBannerEnabled","maintenanceMode","publicStatsEnabled","publicCompletedCount","publicReviewCount","publicAverageRating","tutorialVideoEnabled","languageAutoDetect"].includes(key))value=Boolean(value)?"true":"false";
@@ -1070,6 +1086,33 @@ app.get("/api/admin/reviews",requireAdmin,(_,res)=>res.json({reviews:db.prepare(
 app.patch("/api/admin/reviews/:id",requireAdmin,(req,res)=>{
   db.prepare("UPDATE reviews SET approved=? WHERE id=?").run(req.body.approved?1:0,req.params.id);
   res.json({ok:true});
+});
+
+
+app.get("/api/customer/profile-summary",requireCustomer,(req,res)=>{
+  const stats=db.prepare(`SELECT COUNT(*) AS totalOrders,
+    SUM(CASE WHEN status='Completed' THEN 1 ELSE 0 END) AS completedOrders,
+    COALESCE(SUM(CASE WHEN status='Completed' THEN total_payment ELSE 0 END),0) AS totalSpent,
+    COALESCE(SUM(CASE WHEN status='Completed' THEN receive_amount ELSE 0 END),0) AS totalRobux
+    FROM orders WHERE customer_id=?`).get(req.user.id);
+  const completed=Number(stats.completedOrders||0);
+  const tier=completed>=100?"Diamond":completed>=31?"Gold":completed>=11?"Silver":"Bronze";
+  const nextTarget=completed>=100?null:completed>=31?100:completed>=11?31:11;
+  res.json({...stats,tier,nextTarget,ordersToNext:nextTarget?Math.max(0,nextTarget-completed):0});
+});
+
+app.get("/api/admin/orders/export.csv",requireAdmin,(req,res)=>{
+  const rows=db.prepare(`SELECT order_number,status,method,amount,receive_amount,total_payment,payment_method,
+    username,display_name,sender_name,reference_number,created_at,updated_at FROM orders ORDER BY created_at DESC`).all();
+  const escCsv=value=>`"${String(value??"").replace(/"/g,'""')}"`;
+  const headers=["Order Number","Status","Method","Amount","Receive Amount","Total Payment","Payment Method","Username","Display Name","Sender","Reference","Created","Updated"];
+  const lines=[headers.map(escCsv).join(","),...rows.map(r=>[
+    r.order_number,r.status,r.method,r.amount,r.receive_amount,r.total_payment,r.payment_method,r.username,r.display_name,r.sender_name,r.reference_number,r.created_at,r.updated_at
+  ].map(escCsv).join(","))];
+  audit("orders_exported",`${rows.length} orders exported`);
+  res.setHeader("Content-Type","text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition",`attachment; filename="rsr-orders-${new Date().toISOString().slice(0,10)}.csv"`);
+  res.send("\uFEFF"+lines.join("\n"));
 });
 
 app.get("/api/admin/analytics",requireAdmin,(req,res)=>{
@@ -1133,7 +1176,7 @@ app.use((error,_,res,__)=>{
 });
 
 app.listen(PORT,()=>{
-  console.log(`RSR Shop V8 Multilanguage & Editable Tutorial running on port ${PORT}`);
+  console.log(`RSR Shop V9.4 Final Commerce Edition running on port ${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
 });

@@ -1,0 +1,12 @@
+RSR SHOP V9.4 — FINAL COMMERCE EDITION
+
+- Buyer order ETA and Pending Robux notice
+- Admin-editable ETA for CT, NCT, Instant and Gifting
+- Customer loyalty profile (Bronze/Silver/Gold/Diamond)
+- Customer total completed spending and Robux summary
+- Admin CSV order export
+- Low-stock threshold setting
+- Improved order timeline presentation
+- Mobile bottom navigation
+- Stronger response security headers and hidden Express signature
+- V8 tutorial, translations, iOS install guide, CT/NCT verification, accounts, receipts, chat and analytics preserved

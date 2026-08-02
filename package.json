@@ -1,8 +1,8 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "8.0.0",
+  "version": "9.4.0",
   "private": true,
-  "description": "RSR Shop V8 with admin-editable tutorial/reels, multilingual customer UI, remembered language selection, and improved iOS installation guidance.",
+  "description": "RSR Shop V9.4 with order ETA/timeline, loyalty profile, CSV export, stronger security, mobile navigation and final stability improvements.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
