@@ -1,0 +1,6 @@
+RSR SHOP V10 — SMART OPERATIONS EDITION
+
+Customer: guided checkout checklist, final confirmation, notifications, support/disputes, duplicate receipt/reference protection, emergency availability messages.
+Admin: command center, private notes, receipt review, quick customer messages, editable templates, support cases, overdue alerts, method switches, security summary, session revoke, backup visibility, conversion and delivery analytics.
+Server: receipt SHA-256 fingerprinting, risk flags, notifications/disputes/notes/templates/events tables, automatic status notifications, delivery timestamps.
+Preserved: V9.4 CT/NCT verification, accounts, receipts, chat, analytics, translations, editable tutorial, Android/iOS PWA, trust/contact settings.

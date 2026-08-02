@@ -1,4 +1,4 @@
-const CACHE_NAME = "reck-shop-v9-4-final",A=["/","/style.css",
+const CACHE_NAME = "reck-shop-v10-smart-operations",A=["/","/style.css",
   "/tutorial-media.js",
   "/install.js",
   "/v94-customer.js",

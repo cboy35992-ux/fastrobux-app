@@ -154,7 +154,81 @@ CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_messages_order ON messages(order_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE TABLE IF NOT EXISTS admin_audit (id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT NOT NULL, details TEXT, created_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT,
+  order_id TEXT,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  read_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS admin_notes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_id TEXT NOT NULL,
+  note TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS disputes (
+  id TEXT PRIMARY KEY,
+  order_id TEXT NOT NULL,
+  customer_id TEXT NOT NULL,
+  category TEXT NOT NULL,
+  details TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Open',
+  admin_reply TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  FOREIGN KEY(customer_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS message_templates (
+  key TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS site_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_key TEXT,
+  event_type TEXT NOT NULL,
+  path TEXT,
+  language TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read_at);
+CREATE INDEX IF NOT EXISTS idx_notes_order ON admin_notes(order_id);
+CREATE INDEX IF NOT EXISTS idx_disputes_customer ON disputes(customer_id);
+CREATE INDEX IF NOT EXISTS idx_site_events_type ON site_events(event_type, created_at);
+
 `);
+
+
+// V10: operational review and fraud-protection fields.
+const v10OrderColumns = new Set(db.prepare("PRAGMA table_info(orders)").all().map(c=>c.name));
+for (const [column,type] of [
+  ["receipt_hash","TEXT"],["risk_flags","TEXT"],["admin_verified_amount","REAL"],
+  ["admin_verified_reference","TEXT"],["receipt_review_status","TEXT"],
+  ["delivery_started_at","TEXT"],["completed_at","TEXT"]
+]) {
+  if (!v10OrderColumns.has(column)) db.exec(`ALTER TABLE orders ADD COLUMN ${column} ${type}`);
+}
+const defaultTemplates = {
+  payment_approved: ["Payment approved", "Your payment has been verified. Your order is now being processed."],
+  processing: ["Order processing", "Delivery processing has started. We will update you again when it is ready."],
+  ready: ["Ready for delivery", "Your order is ready for the final delivery step. Please check your private order chat."],
+  completed: ["Order completed", "Your order has been completed. Please check your Roblox account or Pending Robux."],
+  declined: ["Order needs correction", "Your order was declined. Open the private order page to view the reason or contact support."],
+  receipt_needed: ["Better receipt required", "Please upload or send a clearer payment receipt showing the amount and reference number."],
+  gamepass_needed: ["Correct Game Pass required", "Your Game Pass link or price needs correction. Update it to the exact required price before delivery."]
+};
+for (const [key,[title,message]] of Object.entries(defaultTemplates)) {
+  db.prepare("INSERT OR IGNORE INTO message_templates(key,title,message,updated_at) VALUES (?,?,?,?)")
+    .run(key,title,message,nowIso());
+}
 
 // V7.3: keep buyer Game Pass details on every CT/NCT order.
 const existingOrderColumns = new Set(db.prepare("PRAGMA table_info(orders)").all().map(c=>c.name));
@@ -204,7 +278,15 @@ const defaultSettings = {
   eta_instant: "5–15 minutes",
   eta_gifting: "15–60 minutes",
   pending_notice: "Roblox may hold Game Pass proceeds in Pending Robux before release.",
-  low_stock_threshold: "5000"
+  low_stock_threshold: "5000",
+  orders_enabled: "true",
+  method_ct_enabled: "true",
+  method_nct_enabled: "true",
+  method_instant_enabled: "true",
+  method_gifting_enabled: "true",
+  overdue_review_minutes: "30",
+  overdue_processing_minutes: "120",
+  security_notice: "All orders are manually reviewed. Suspicious or duplicate receipts are flagged for review."
 };
 const setSettingStmt = db.prepare("INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)");
 for (const [key, value] of Object.entries(defaultSettings)) setSettingStmt.run(key, value);
@@ -311,6 +393,18 @@ function settingsObject() {
     },
     stock: {
       lowThreshold: Number(setting("low_stock_threshold") || 5000)
+    },
+    operations: {
+      ordersEnabled: setting("orders_enabled") !== "false",
+      methods: {
+        ct: setting("method_ct_enabled") !== "false",
+        nct: setting("method_nct_enabled") !== "false",
+        instant: setting("method_instant_enabled") !== "false",
+        gifting: setting("method_gifting_enabled") !== "false"
+      },
+      overdueReviewMinutes: Number(setting("overdue_review_minutes") || 30),
+      overdueProcessingMinutes: Number(setting("overdue_processing_minutes") || 120),
+      securityNotice: setting("security_notice")
     }
   };
 }
@@ -319,6 +413,18 @@ function updateSetting(key, value) {
 }
 
 function audit(action, details="") { try { db.prepare("INSERT INTO admin_audit(action,details,created_at) VALUES (?,?,?)").run(String(action).slice(0,120),String(details).slice(0,1500),nowIso()); } catch {} }
+
+function notifyUser(userId, orderId, type, title, message) {
+  try { db.prepare("INSERT INTO notifications(user_id,order_id,type,title,message,created_at) VALUES (?,?,?,?,?,?)")
+    .run(userId || null, orderId || null, String(type).slice(0,40), String(title).slice(0,120), String(message).slice(0,1200), nowIso()); } catch {}
+}
+function templateFor(key) { return db.prepare("SELECT * FROM message_templates WHERE key=?").get(key) || null; }
+function receiptHash(filePath) { return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex"); }
+function appendRiskFlag(existing, flag) {
+  const flags = new Set(String(existing || "").split(",").map(x=>x.trim()).filter(Boolean));
+  flags.add(flag); return [...flags].join(",");
+}
+
 function createBackupNow() { const dir=path.join(DATA_DIR,"backups"); fs.mkdirSync(dir,{recursive:true}); const name=`rsr-${new Date().toISOString().replace(/[:.]/g,"-")}.db`; return db.backup(path.join(dir,name)).then(()=>name); }
 setInterval(()=>createBackupNow().catch(()=>{}),24*60*60*1000).unref();
 
@@ -393,7 +499,13 @@ function serializeOrder(row, includePrivate=false) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     reservedStock: row.reserved_stock,
-    reservationExpiresAt: row.reservation_expires_at
+    reservationExpiresAt: row.reservation_expires_at,
+    riskFlags: String(row.risk_flags || "").split(",").filter(Boolean),
+    receiptReviewStatus: row.receipt_review_status || "Not reviewed",
+    adminVerifiedAmount: row.admin_verified_amount,
+    adminVerifiedReference: row.admin_verified_reference,
+    deliveryStartedAt: row.delivery_started_at,
+    completedAt: row.completed_at
   };
   if (includePrivate) {
     result.senderName = row.sender_name;
@@ -804,6 +916,8 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
     const cfg=settingsObject();
     const methodKey=String(body.methodKey||"");
     if(!["ct","nct","instant","gifting"].includes(methodKey))throw new Error("Invalid order method.");
+    if(cfg.operations && !cfg.operations.ordersEnabled) throw new Error("New orders are temporarily disabled. Existing customers can still track their orders.");
+    if(cfg.operations?.methods && cfg.operations.methods[methodKey] === false) throw new Error("This purchase method is temporarily unavailable.");
     const amount=Math.floor(Number(body.amount));
     if(!Number.isFinite(amount)||amount<=0)throw new Error("Enter a valid Robux amount.");
     if(methodKey==="instant"&&amount<10)throw new Error("Instant minimum is 10 Robux.");
@@ -856,6 +970,14 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
       reservationExpiresAt=new Date(Date.now()+RESERVATION_MINUTES*60000).toISOString();
     }
 
+
+    const currentReceiptHash = receiptHash(req.file.path);
+    let riskFlags = "";
+    const duplicateReceipt = db.prepare("SELECT order_number FROM orders WHERE receipt_hash=? LIMIT 1").get(currentReceiptHash);
+    if (duplicateReceipt) riskFlags = appendRiskFlag(riskFlags, `duplicate-receipt:${duplicateReceipt.order_number}`);
+    const duplicateReference = db.prepare("SELECT order_number FROM orders WHERE reference_number=? LIMIT 1").get(String(body.referenceNumber||"").trim());
+    if (duplicateReference) riskFlags = appendRiskFlag(riskFlags, `duplicate-reference:${duplicateReference.order_number}`);
+
     const id=crypto.randomUUID(),number=makeOrderNumber(),privateToken=crypto.randomBytes(24).toString("hex");
     const methodNames={ct:"Covered Tax",nct:"Not Covered Tax",instant:"Robux Instant",gifting:"In-Game Gifting"};
     const created=nowIso();
@@ -868,8 +990,8 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
           required_pass_price,subtotal,discount,total_payment,promo_code,payment_method,sender_name,
           reference_number,roblox_user_id,username,display_name,avatar_url,game_name,item_name,
           gamepass_id,gamepass_url,gamepass_name,gamepass_price,gamepass_verified_at,
-          receipt_filename,reserved_stock,reservation_expires_at,created_at,updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+          receipt_filename,receipt_hash,risk_flags,receipt_review_status,reserved_stock,reservation_expires_at,created_at,updated_at
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `).run(
         id,number,hashToken(privateToken),req.customer.id,"Pending Payment Review",methodNames[methodKey],
         methodKey==="ct"?"Covered Tax":methodKey==="nct"?"Not Covered Tax":"N/A",
@@ -878,11 +1000,13 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
         String(body.robloxUserId||""),String(body.username||""),String(body.robloxDisplayName||body.username||""),
         String(body.robloxAvatarUrl||""),String(body.gameName||""),String(body.itemName||""),
         verifiedGamePass?.id||null,verifiedGamePass?.url||null,verifiedGamePass?.name||null,verifiedGamePass?.actualPrice||null,verifiedGamePass?created:null,
-        req.file.filename,reserved,reservationExpiresAt,created,created
+        req.file.filename,currentReceiptHash,riskFlags,"Not reviewed",reserved,reservationExpiresAt,created,created
       );
       db.prepare("INSERT INTO order_history(order_id,status,created_at) VALUES (?,?,?)").run(id,"Pending Payment Review",created);
       db.prepare("INSERT INTO messages(order_id,sender_type,text,customer_read,admin_read,created_at) VALUES (?,?,?,?,?,?)")
         .run(id,"system","Order submitted. Wait for admin payment review.",0,0,created);
+      notifyUser(req.customer.id,id,"order_submitted","Order submitted",`${number} was submitted and is waiting for payment review.`);
+      if(riskFlags) audit("order_risk_flag",`${number}: ${riskFlags}`);
       if(promo)db.prepare("UPDATE promo_codes SET uses=uses+1 WHERE id=?").run(promo.id);
     });
     tx();
@@ -986,7 +1110,9 @@ app.get("/api/admin/orders/:number",requireAdmin,(req,res)=>{
   db.prepare("UPDATE messages SET admin_read=1 WHERE order_id=? AND sender_type='customer'").run(order.id);
   const history=db.prepare("SELECT status,created_at FROM order_history WHERE order_id=? ORDER BY id").all(order.id);
   const messages=db.prepare("SELECT id,sender_type AS sender,text,created_at FROM messages WHERE order_id=? ORDER BY id").all(order.id);
-  res.json({...serializeOrder(order,true),history,messages});
+  const notes=db.prepare("SELECT id,note,created_at FROM admin_notes WHERE order_id=? ORDER BY id DESC").all(order.id);
+  const disputes=db.prepare("SELECT * FROM disputes WHERE order_id=? ORDER BY created_at DESC").all(order.id);
+  res.json({...serializeOrder(order,true),history,messages,notes,disputes});
 });
 
 app.get("/api/admin/orders/:number/receipt",requireAdmin,(req,res)=>{
@@ -1021,16 +1147,25 @@ app.patch("/api/admin/orders/:number/status",requireAdmin,(req,res)=>{
     if(["Approved","Processing","Ready for Delivery","Completed"].includes(status)&&order.reserved_stock>0){
       db.prepare("UPDATE orders SET reserved_stock=0,reservation_expires_at=NULL WHERE id=?").run(order.id);
     }
-    db.prepare("UPDATE orders SET status=?,updated_at=? WHERE id=?").run(status,nowIso(),order.id);
+    const changedAt=nowIso();
+    const deliveryStarted = ["Processing","Ready for Delivery","Completed"].includes(status) ? (order.delivery_started_at || changedAt) : order.delivery_started_at;
+    const completedAt = status==="Completed" ? changedAt : order.completed_at;
+    db.prepare("UPDATE orders SET status=?,updated_at=?,delivery_started_at=?,completed_at=? WHERE id=?")
+      .run(status,changedAt,deliveryStarted,completedAt,order.id);
     db.prepare("INSERT INTO order_history(order_id,status,created_at) VALUES (?,?,?)").run(order.id,status,nowIso());
+    const templateKey={Approved:"payment_approved",Processing:"processing","Ready for Delivery":"ready",Completed:"completed",Declined:"declined"}[status];
+    const tpl=templateKey?templateFor(templateKey):null;
+    const text=tpl?.message || `Order status changed to ${status}.`;
     db.prepare("INSERT INTO messages(order_id,sender_type,text,customer_read,admin_read,created_at) VALUES (?,?,?,?,?,?)")
-      .run(order.id,"system",`Order status changed to ${status}.`,0,0,nowIso());
+      .run(order.id,"system",text,0,0,nowIso());
+    notifyUser(order.customer_id,order.id,"status",tpl?.title || `Order ${status}`,text);
+    audit("order_status_changed",`${order.order_number} → ${status}`);
   })();
   res.json({ok:true});
 });
 
 app.patch("/api/admin/settings",requireAdmin,(req,res)=>{
-  const allowed=["instantStock","supportOnline","supportText","rateCt","rateNct","rateInstant","rateGifting","paypalEmail","wiseDetails","payoneerDetails","paymentGCashEnabled","paymentGoTymeEnabled","paymentPayPalEnabled","paymentWiseEnabled","paymentPayoneerEnabled","shopBannerEnabled","shopBannerText","maintenanceMode","businessName","businessOwnerDisplay","businessEmail","businessPhone","businessAddress","supportHours","facebookUrl","discordUrl","trustNotice","publicStatsEnabled","publicCompletedCount","publicReviewCount","publicAverageRating","tutorialTitle","tutorialVideoUrl","tutorialVideoEnabled","languageDefault","languageAutoDetect","etaCt","etaNct","etaInstant","etaGifting","pendingNotice","lowStockThreshold"];
+  const allowed=["instantStock","supportOnline","supportText","rateCt","rateNct","rateInstant","rateGifting","paypalEmail","wiseDetails","payoneerDetails","paymentGCashEnabled","paymentGoTymeEnabled","paymentPayPalEnabled","paymentWiseEnabled","paymentPayoneerEnabled","shopBannerEnabled","shopBannerText","maintenanceMode","businessName","businessOwnerDisplay","businessEmail","businessPhone","businessAddress","supportHours","facebookUrl","discordUrl","trustNotice","publicStatsEnabled","publicCompletedCount","publicReviewCount","publicAverageRating","tutorialTitle","tutorialVideoUrl","tutorialVideoEnabled","languageDefault","languageAutoDetect","etaCt","etaNct","etaInstant","etaGifting","pendingNotice","lowStockThreshold","ordersEnabled","methodCtEnabled","methodNctEnabled","methodInstantEnabled","methodGiftingEnabled","overdueReviewMinutes","overdueProcessingMinutes","securityNotice"];
   for(const key of allowed){
     if(req.body[key]===undefined)continue;
     const map={
@@ -1044,10 +1179,10 @@ app.patch("/api/admin/settings",requireAdmin,(req,res)=>{
       publicReviewCount:"public_review_count",publicAverageRating:"public_average_rating",
       tutorialTitle:"tutorial_title",tutorialVideoUrl:"tutorial_video_url",
       tutorialVideoEnabled:"tutorial_video_enabled",languageDefault:"language_default",
-      languageAutoDetect:"language_auto_detect",etaCt:"eta_ct",etaNct:"eta_nct",etaInstant:"eta_instant",etaGifting:"eta_gifting",pendingNotice:"pending_notice",lowStockThreshold:"low_stock_threshold"
+      languageAutoDetect:"language_auto_detect",etaCt:"eta_ct",etaNct:"eta_nct",etaInstant:"eta_instant",etaGifting:"eta_gifting",pendingNotice:"pending_notice",lowStockThreshold:"low_stock_threshold",ordersEnabled:"orders_enabled",methodCtEnabled:"method_ct_enabled",methodNctEnabled:"method_nct_enabled",methodInstantEnabled:"method_instant_enabled",methodGiftingEnabled:"method_gifting_enabled",overdueReviewMinutes:"overdue_review_minutes",overdueProcessingMinutes:"overdue_processing_minutes",securityNotice:"security_notice"
     };
     let value=req.body[key];
-    if(["supportOnline","paymentGCashEnabled","paymentGoTymeEnabled","paymentPayPalEnabled","paymentWiseEnabled","paymentPayoneerEnabled","shopBannerEnabled","maintenanceMode","publicStatsEnabled","publicCompletedCount","publicReviewCount","publicAverageRating","tutorialVideoEnabled","languageAutoDetect"].includes(key))value=Boolean(value)?"true":"false";
+    if(["supportOnline","paymentGCashEnabled","paymentGoTymeEnabled","paymentPayPalEnabled","paymentWiseEnabled","paymentPayoneerEnabled","shopBannerEnabled","maintenanceMode","publicStatsEnabled","publicCompletedCount","publicReviewCount","publicAverageRating","tutorialVideoEnabled","languageAutoDetect","ordersEnabled","methodCtEnabled","methodNctEnabled","methodInstantEnabled","methodGiftingEnabled"].includes(key))value=Boolean(value)?"true":"false";
     updateSetting(map[key],value);
   }
   res.json(settingsObject());
@@ -1160,9 +1295,95 @@ app.get("/api/admin/analytics",requireAdmin,(req,res)=>{
     ? (Number(totals.completed||0)/Number(totals.orders))*100
     : 0;
 
-  res.json({totals:{...totals,completionRate},daily,methods,payments,statuses,last7});
+  const visitors=db.prepare("SELECT COUNT(DISTINCT session_key) count FROM site_events WHERE event_type='page_view' AND created_at>=datetime('now','-30 days')").get().count;
+  const checkoutStarts=db.prepare("SELECT COUNT(*) count FROM site_events WHERE event_type='checkout_start' AND created_at>=datetime('now','-30 days')").get().count;
+  const submitAttempts=db.prepare("SELECT COUNT(*) count FROM site_events WHERE event_type='order_submit_attempt' AND created_at>=datetime('now','-30 days')").get().count;
+  const repeatCustomers=db.prepare("SELECT COUNT(*) count FROM (SELECT customer_id FROM orders WHERE status='Completed' GROUP BY customer_id HAVING COUNT(*)>1)").get().count;
+  const avgDelivery=db.prepare("SELECT COALESCE(AVG((julianday(completed_at)-julianday(created_at))*1440),0) minutes FROM orders WHERE completed_at IS NOT NULL").get().minutes;
+  res.json({totals:{...totals,completionRate},daily,methods,payments,statuses,last7,funnel:{visitors,checkoutStarts,submitAttempts,conversionRate:visitors?Number(totals.orders||0)/visitors*100:0},repeatCustomers,averageDeliveryMinutes:avgDelivery});
 });
 
+
+
+app.post("/api/events",(req,res)=>{
+  const allowed=["page_view","checkout_start","order_submit_attempt","install_help","language_change"];
+  const eventType=String(req.body.eventType||"");
+  if(!allowed.includes(eventType))return res.status(400).json({error:"Invalid event."});
+  db.prepare("INSERT INTO site_events(session_key,event_type,path,language,created_at) VALUES (?,?,?,?,?)")
+    .run(String(req.body.sessionKey||"").slice(0,100),eventType,String(req.body.path||"").slice(0,200),String(req.body.language||"").slice(0,20),nowIso());
+  res.json({ok:true});
+});
+app.get("/api/customer/notifications",requireCustomer,(req,res)=>{
+  const rows=db.prepare("SELECT id,type,title,message,read_at,created_at,order_id FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 100").all(req.customer.id);
+  res.json({notifications:rows,unread:rows.filter(x=>!x.read_at).length});
+});
+app.patch("/api/customer/notifications/read",requireCustomer,(req,res)=>{
+  db.prepare("UPDATE notifications SET read_at=COALESCE(read_at,?) WHERE user_id=?").run(nowIso(),req.customer.id);res.json({ok:true});
+});
+app.post("/api/orders/:number/disputes",requireCustomer,(req,res)=>{
+  const order=orderForCustomer(req.params.number,req.customer.id);if(!order)return res.status(404).json({error:"Order not found."});
+  const category=String(req.body.category||"").trim(),details=String(req.body.details||"").trim().slice(0,2000);
+  const allowed=["Missing Delivery","Wrong Roblox Username","Wrong Game Pass","Duplicate Payment","Refund Request","Other"];
+  if(!allowed.includes(category)||details.length<5)return res.status(400).json({error:"Choose a category and explain the problem."});
+  const id=crypto.randomUUID(),created=nowIso();
+  db.prepare("INSERT INTO disputes(id,order_id,customer_id,category,details,status,created_at,updated_at) VALUES (?,?,?,?,?,'Open',?,?)").run(id,order.id,req.customer.id,category,details,created,created);
+  notifyUser(req.customer.id,order.id,"dispute","Support case opened",`Your ${category} case was opened for ${order.order_number}.`);
+  audit("dispute_opened",`${order.order_number}: ${category}`);res.json({ok:true,id});
+});
+app.get("/api/customer/disputes",requireCustomer,(req,res)=>res.json({disputes:db.prepare(`SELECT d.*,o.order_number FROM disputes d JOIN orders o ON o.id=d.order_id WHERE d.customer_id=? ORDER BY d.created_at DESC`).all(req.customer.id)}));
+app.post("/api/admin/orders/:number/notes",requireAdmin,(req,res)=>{
+  const order=db.prepare("SELECT * FROM orders WHERE order_number=?").get(req.params.number);if(!order)return res.status(404).json({error:"Order not found."});
+  const note=String(req.body.note||"").trim().slice(0,1500);if(!note)return res.status(400).json({error:"Note is empty."});
+  db.prepare("INSERT INTO admin_notes(order_id,note,created_at) VALUES (?,?,?)").run(order.id,note,nowIso());audit("admin_note_added",order.order_number);res.json({ok:true});
+});
+app.patch("/api/admin/orders/:number/receipt-review",requireAdmin,(req,res)=>{
+  const order=db.prepare("SELECT * FROM orders WHERE order_number=?").get(req.params.number);if(!order)return res.status(404).json({error:"Order not found."});
+  const status=String(req.body.status||"");if(!["Verified","Unreadable","Mismatch","Duplicate suspected"].includes(status))return res.status(400).json({error:"Invalid review status."});
+  const amount=req.body.amount===""||req.body.amount==null?null:Number(req.body.amount),reference=String(req.body.reference||"").trim().slice(0,120);
+  let risk=order.risk_flags||"";if(status==="Mismatch")risk=appendRiskFlag(risk,"payment-mismatch");if(status==="Duplicate suspected")risk=appendRiskFlag(risk,"duplicate-suspected");
+  db.prepare("UPDATE orders SET receipt_review_status=?,admin_verified_amount=?,admin_verified_reference=?,risk_flags=?,updated_at=? WHERE id=?").run(status,Number.isFinite(amount)?amount:null,reference||null,risk,nowIso(),order.id);
+  audit("receipt_reviewed",`${order.order_number}: ${status}`);res.json({ok:true});
+});
+app.post("/api/admin/orders/:number/quick-action",requireAdmin,(req,res)=>{
+  const order=db.prepare("SELECT * FROM orders WHERE order_number=?").get(req.params.number);if(!order)return res.status(404).json({error:"Order not found."});
+  const key=String(req.body.templateKey||""),tpl=templateFor(key);if(!tpl)return res.status(404).json({error:"Message template not found."});
+  db.prepare("INSERT INTO messages(order_id,sender_type,text,customer_read,admin_read,created_at) VALUES (?,?,?,?,?,?)").run(order.id,"admin",tpl.message,0,1,nowIso());
+  notifyUser(order.customer_id,order.id,"support",tpl.title,tpl.message);audit("quick_message_sent",`${order.order_number}: ${key}`);res.json({ok:true});
+});
+app.get("/api/admin/templates",requireAdmin,(_,res)=>res.json({templates:db.prepare("SELECT * FROM message_templates ORDER BY key").all()}));
+app.patch("/api/admin/templates/:key",requireAdmin,(req,res)=>{
+  const title=String(req.body.title||"").trim().slice(0,120),message=String(req.body.message||"").trim().slice(0,1200);
+  if(!title||!message)return res.status(400).json({error:"Title and message are required."});
+  db.prepare("INSERT INTO message_templates(key,title,message,updated_at) VALUES (?,?,?,?) ON CONFLICT(key) DO UPDATE SET title=excluded.title,message=excluded.message,updated_at=excluded.updated_at").run(req.params.key,title,message,nowIso());
+  audit("template_updated",req.params.key);res.json({ok:true});
+});
+app.get("/api/admin/disputes",requireAdmin,(_,res)=>res.json({disputes:db.prepare(`SELECT d.*,o.order_number,u.email,u.full_name FROM disputes d JOIN orders o ON o.id=d.order_id JOIN users u ON u.id=d.customer_id ORDER BY d.created_at DESC`).all()}));
+app.patch("/api/admin/disputes/:id",requireAdmin,(req,res)=>{
+  const row=db.prepare("SELECT * FROM disputes WHERE id=?").get(req.params.id);if(!row)return res.status(404).json({error:"Case not found."});
+  const status=String(req.body.status||"Open");if(!["Open","Waiting for Customer","Resolved","Rejected"].includes(status))return res.status(400).json({error:"Invalid case status."});
+  const reply=String(req.body.adminReply||"").trim().slice(0,2000);
+  db.prepare("UPDATE disputes SET status=?,admin_reply=?,updated_at=? WHERE id=?").run(status,reply||null,nowIso(),row.id);
+  notifyUser(row.customer_id,row.order_id,"dispute","Support case updated",reply||`Your support case is now ${status}.`);audit("dispute_updated",`${row.id}: ${status}`);res.json({ok:true});
+});
+app.get("/api/admin/security",requireAdmin,(req,res)=>{
+  const activeSessions=db.prepare("SELECT COUNT(*) count FROM sessions WHERE expires_at>?").get(nowIso()).count;
+  const riskyOrders=db.prepare("SELECT COUNT(*) count FROM orders WHERE COALESCE(risk_flags,'')<>'' AND status NOT IN ('Completed','Declined')").get().count;
+  const duplicateReceipts=db.prepare("SELECT COUNT(*) count FROM (SELECT receipt_hash FROM orders WHERE receipt_hash IS NOT NULL GROUP BY receipt_hash HAVING COUNT(*)>1)").get().count;
+  const latestBackup=(()=>{try{const dir=path.join(DATA_DIR,'backups');const files=fs.existsSync(dir)?fs.readdirSync(dir).sort().reverse():[];return files[0]||null}catch{return null}})();
+  res.json({activeSessions,riskyOrders,duplicateReceipts,latestBackup});
+});
+app.post("/api/admin/security/logout-customers",requireAdmin,(req,res)=>{
+  const result=db.prepare("DELETE FROM sessions").run();audit("all_customer_sessions_revoked",`${result.changes} sessions`);res.json({ok:true,count:result.changes});
+});
+app.get("/api/admin/operations",requireAdmin,(req,res)=>{
+  const reviewMinutes=Number(setting("overdue_review_minutes")||30),processingMinutes=Number(setting("overdue_processing_minutes")||120);
+  const overdue=db.prepare(`SELECT order_number,status,username,created_at,updated_at,
+    CAST((julianday('now')-julianday(CASE WHEN status='Pending Payment Review' THEN created_at ELSE updated_at END))*1440 AS INTEGER) AS waiting_minutes
+    FROM orders WHERE (status='Pending Payment Review' AND datetime(created_at)<=datetime('now',?))
+    OR (status IN ('Approved','Processing','Ready for Delivery') AND datetime(updated_at)<=datetime('now',?))
+    ORDER BY waiting_minutes DESC LIMIT 100`).all(`-${reviewMinutes} minutes`,`-${processingMinutes} minutes`);
+  res.json({overdue,lowStock:Number(setting("instant_stock")||0)<=Number(setting("low_stock_threshold")||5000),instantStock:Number(setting("instant_stock")||0)});
+});
 
 app.get("/api/admin/audit",requireAdmin,(req,res)=>res.json({entries:db.prepare("SELECT * FROM admin_audit ORDER BY id DESC LIMIT 200").all()}));
 app.post("/api/admin/backup",requireAdmin,async(req,res)=>{try{const filename=await createBackupNow();audit("manual_backup",filename);res.json({ok:true,filename});}catch{res.status(500).json({error:"Backup failed."});}});
@@ -1176,7 +1397,7 @@ app.use((error,_,res,__)=>{
 });
 
 app.listen(PORT,()=>{
-  console.log(`RSR Shop V9.4 Final Commerce Edition running on port ${PORT}`);
+  console.log(`RSR Shop V10 Smart Operations Edition running on port ${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
 });

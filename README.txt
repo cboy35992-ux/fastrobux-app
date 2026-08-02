@@ -223,3 +223,6 @@ RSR SHOP V8
 
 
 V9.4 adds editable delivery estimates, loyalty summaries, CSV order export, mobile navigation and final security/stability improvements.
+
+
+V10 Smart Operations: see CHANGELOG-V10.txt. Keep the same persistent DATA_ROOT and uploads disk during deployment.
