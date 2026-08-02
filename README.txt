@@ -136,3 +136,24 @@ IMPORTANT
 Deploy and test this as staging before replacing the live V5/V6 site.
 After deployment, uninstall any older Reck Shop PWA and reinstall it so the new icon appears.
 If an old QR or icon remains, clear the browser site data or wait for the service worker update.
+
+
+RSR SHOP V7 TRUST EDITION
+
+New trust and legitimacy features:
+- Public Trust Center page.
+- Real completed-order count from the database.
+- Real published-review count and average rating.
+- Partially hidden recent completed orders for privacy.
+- Verified-purchase review explanation.
+- Public customer-protection safeguards.
+- Business profile and contact information controlled by Admin.
+- Public support hours, Facebook and Discord links.
+- Clear independent-shop and Roblox non-affiliation notice.
+- Trust Center link on the homepage and PWA shortcuts.
+- No fake badges, fake customer totals or invented business claims.
+
+IMPORTANT:
+Only publish business details that are accurate and verifiable.
+Do not claim government registration, SSL certification, encryption standards,
+customer totals or success rates unless you can prove them.

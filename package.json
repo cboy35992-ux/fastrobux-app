@@ -1,8 +1,8 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "6.1.0",
+  "version": "7.0.0",
   "private": true,
-  "description": "RSR Shop V6.1 Enhanced with updated QR codes, premium PWA icons, improved payments and mobile UX.",
+  "description": "RSR Shop V7 Trust Edition with transparent trust center, real public stats, verified reviews, business profile, service status and stronger customer confidence features.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -174,7 +174,20 @@ const defaultSettings = {
   payment_payoneer_enabled: "true",
   shop_banner_enabled: "false",
   shop_banner_text: "Welcome to Reck Shop",
-  maintenance_mode: "false"
+  maintenance_mode: "false",
+  business_name: "Reck Shop",
+  business_owner_display: "",
+  business_email: "",
+  business_phone: "",
+  business_address: "",
+  support_hours: "Daily, 9:00 AM–10:00 PM Philippine Time",
+  facebook_url: "",
+  discord_url: "",
+  trust_notice: "Reck Shop never asks for your Roblox password, verification code, or cookie.",
+  public_stats_enabled: "true",
+  public_completed_count: "true",
+  public_review_count: "true",
+  public_average_rating: "true"
 };
 const setSettingStmt = db.prepare("INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)");
 for (const [key, value] of Object.entries(defaultSettings)) setSettingStmt.run(key, value);
@@ -245,7 +258,24 @@ function settingsObject() {
       Payoneer: setting("payment_payoneer_enabled") === "true"
     },
     banner: { enabled: setting("shop_banner_enabled") === "true", text: setting("shop_banner_text") },
-    maintenanceMode: setting("maintenance_mode") === "true"
+    maintenanceMode: setting("maintenance_mode") === "true",
+    business: {
+      name: setting("business_name"),
+      ownerDisplay: setting("business_owner_display"),
+      email: setting("business_email"),
+      phone: setting("business_phone"),
+      address: setting("business_address"),
+      supportHours: setting("support_hours"),
+      facebookUrl: setting("facebook_url"),
+      discordUrl: setting("discord_url"),
+      trustNotice: setting("trust_notice")
+    },
+    publicStats: {
+      enabled: setting("public_stats_enabled") === "true",
+      showCompleted: setting("public_completed_count") === "true",
+      showReviewCount: setting("public_review_count") === "true",
+      showAverageRating: setting("public_average_rating") === "true"
+    }
   };
 }
 function updateSetting(key, value) {
@@ -402,7 +432,7 @@ async function discordOrder(order) {
 app.get("/api/health",(_,res)=>{
   res.json({
     ok:true,
-    version:"V6.1 Enhanced",
+    version:"V7 Trust Edition",
     database:"SQLite",
     databasePath:DB_PATH,
     storage:process.env.DATA_ROOT?"persistent disk":"local development",
@@ -411,6 +441,46 @@ app.get("/api/health",(_,res)=>{
 });
 
 app.get("/api/settings",(_,res)=>res.json(settingsObject()));
+
+app.get("/api/trust", (_, res) => {
+  const cfg = settingsObject();
+  const completed = db.prepare("SELECT COUNT(*) AS count FROM orders WHERE status='Completed'").get().count;
+  const customers = db.prepare("SELECT COUNT(*) AS count FROM users").get().count;
+  const reviewStats = db.prepare("SELECT COUNT(*) AS count, COALESCE(AVG(rating),0) AS average FROM reviews WHERE approved=1").get();
+  const latestCompleted = db.prepare(`
+    SELECT order_number, method, amount, updated_at
+    FROM orders
+    WHERE status='Completed'
+    ORDER BY updated_at DESC
+    LIMIT 8
+  `).all().map(row => ({
+    orderNumber: row.order_number.replace(/(.{4}).+(.{3})$/, "$1••••$2"),
+    method: row.method,
+    amount: row.amount,
+    completedAt: row.updated_at
+  }));
+
+  res.json({
+    business: cfg.business,
+    publicStats: cfg.publicStats,
+    metrics: cfg.publicStats.enabled ? {
+      completedOrders: cfg.publicStats.showCompleted ? completed : null,
+      registeredCustomers: customers,
+      publishedReviews: cfg.publicStats.showReviewCount ? reviewStats.count : null,
+      averageRating: cfg.publicStats.showAverageRating ? Number(reviewStats.average.toFixed(2)) : null
+    } : null,
+    latestCompleted,
+    safeguards: [
+      "Passwords are hashed and never stored as plain text.",
+      "Receipts are private to the customer and administrator.",
+      "Every order has a timeline and support chat.",
+      "Verified-purchase reviews require a completed order.",
+      "Reck Shop never asks for a Roblox password, verification code, or authentication cookie."
+    ],
+    affiliationNotice: "Reck Shop is an independent shop and is not affiliated with Roblox Corporation."
+  });
+});
+
 app.get("/api/live",(req,res)=>res.json({now:nowIso(),settings:settingsObject()}));
 
 app.post("/api/auth/register",authLimiter,async(req,res)=>{
@@ -818,7 +888,7 @@ app.use((error,_,res,__)=>{
 });
 
 app.listen(PORT,()=>{
-  console.log(`RSR Shop V6.1 Enhanced running on port ${PORT}`);
+  console.log(`RSR Shop V7 Trust Edition running on port ${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
 });
