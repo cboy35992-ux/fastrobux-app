@@ -64,3 +64,43 @@
 
 /* V7.2 trust/contact and iOS installation */
 .contact-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.contact-cards>a,.contact-cards>div{display:flex;flex-direction:column;gap:6px;padding:16px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.025);overflow-wrap:anywhere}.contact-cards a{text-decoration:none;color:inherit}.contact-cards a:hover{border-color:rgba(139,92,246,.65);transform:translateY(-2px)}.contact-cards span{color:var(--muted);font-size:13px}.contact-note{margin:14px 0 0;padding:12px 14px;border-left:4px solid #22c55e;background:rgba(34,197,94,.08);border-radius:10px}.install-modal{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.72);backdrop-filter:blur(8px)}.install-modal.hidden{display:none}.install-modal-card{position:relative;width:min(440px,100%);padding:24px;border:1px solid rgba(139,92,246,.5);border-radius:20px;background:#111827;box-shadow:0 24px 80px rgba(0,0,0,.5)}.install-modal-card ol{padding-left:22px;line-height:1.8;color:var(--muted)}.modal-close{position:absolute;right:14px;top:10px;border:0;background:transparent;color:white;font-size:28px;cursor:pointer}@media(max-width:850px){.contact-cards{grid-template-columns:1fr 1fr}}@media(max-width:520px){.contact-cards{grid-template-columns:1fr}.official-contact{padding:16px}}
+
+
+/* V7.5 tutorial and analytics */
+.tutorial-preview-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:20px;align-items:center}
+.mini-video,.shorts-frame{display:flex;justify-content:center}
+.mini-video iframe{width:220px;height:390px;border:0;border-radius:18px;background:#050816}
+.shorts-frame iframe{width:min(100%,380px);aspect-ratio:9/16;border:0;border-radius:20px;background:#050816;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.method-help-row{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-top:15px;padding:13px 15px;border:1px solid var(--border);border-radius:12px;background:rgba(139,92,246,.08)}
+.method-help-row a{font-weight:800}
+.tutorial-page{max-width:1120px}
+.tutorial-hero{padding-bottom:10px}
+.tutorial-video-panel{text-align:left}
+.center-text{text-align:center}
+.tutorial-steps{display:grid;gap:12px}
+.tutorial-steps article{display:flex;align-items:flex-start;gap:14px;padding:15px;border:1px solid var(--border);border-radius:14px;background:rgba(4,9,20,.42)}
+.tutorial-steps article>span{display:grid;place-items:center;min-width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#a855f7);font-weight:900}
+.tutorial-steps p,.method-tutorial p{margin:5px 0 0;color:var(--muted)}
+.numbered-guide{display:grid;gap:10px;padding-left:24px;line-height:1.6}
+.tutorial-methods{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}
+.method-tutorial{margin:0}
+.method-icon{font-size:30px}
+.method-tutorial ol{padding-left:22px;line-height:1.55}
+.method-summary{min-height:48px}
+.example-box,.safe-note{display:flex;flex-direction:column;gap:5px;margin-top:14px;padding:13px;border-radius:12px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3)}
+.safe-note{background:rgba(14,165,233,.08);border-color:rgba(14,165,233,.3)}
+.check-list,.status-guide{display:grid;gap:9px;padding-left:20px;line-height:1.45}
+.tutorial-final{text-align:center}
+.tutorial-final .hero-actions{justify-content:center}
+.analytics-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.analytics-grid>.panel{margin:0}
+.analytics-bars{display:grid;gap:14px}
+.analytics-bar-label{display:flex;justify-content:space-between;gap:10px;margin-bottom:7px;font-size:13px}
+.analytics-bar-label span{color:var(--muted);text-align:right}
+.analytics-bar-track{height:9px;overflow:hidden;border-radius:999px;background:rgba(148,163,184,.14)}
+.analytics-bar-track span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#7c3aed,#a855f7)}
+@media(max-width:850px){
+  .tutorial-preview-grid,.tutorial-methods,.analytics-grid{grid-template-columns:1fr}
+  .mini-video iframe{width:200px;height:356px}
+  .method-help-row{align-items:flex-start;flex-direction:column}
+}

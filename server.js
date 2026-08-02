@@ -1055,16 +1055,47 @@ app.get("/api/admin/analytics",requireAdmin,(req,res)=>{
     SELECT COUNT(*) AS orders,
       COALESCE(SUM(CASE WHEN status='Completed' THEN total_payment ELSE 0 END),0) AS revenue,
       SUM(CASE WHEN status='Pending Payment Review' THEN 1 ELSE 0 END) AS pending,
-      SUM(CASE WHEN status='Completed' THEN 1 ELSE 0 END) AS completed
+      SUM(CASE WHEN status='Completed' THEN 1 ELSE 0 END) AS completed,
+      SUM(CASE WHEN status='Declined' THEN 1 ELSE 0 END) AS declined,
+      COALESCE(AVG(CASE WHEN status='Completed' THEN total_payment END),0) AS averageOrder
     FROM orders
   `).get();
+
   const daily=db.prepare(`
     SELECT substr(created_at,1,10) AS day,COUNT(*) AS orders,
       COALESCE(SUM(CASE WHEN status='Completed' THEN total_payment ELSE 0 END),0) AS revenue
     FROM orders GROUP BY substr(created_at,1,10) ORDER BY day DESC LIMIT 30
   `).all();
-  const methods=db.prepare("SELECT method,COUNT(*) AS orders FROM orders GROUP BY method ORDER BY orders DESC").all();
-  res.json({totals,daily,methods});
+
+  const methods=db.prepare(`
+    SELECT method,COUNT(*) AS orders,
+      COALESCE(SUM(CASE WHEN status='Completed' THEN total_payment ELSE 0 END),0) AS revenue
+    FROM orders GROUP BY method ORDER BY orders DESC
+  `).all();
+
+  const payments=db.prepare(`
+    SELECT payment_method AS paymentMethod,COUNT(*) AS orders,
+      COALESCE(SUM(CASE WHEN status='Completed' THEN total_payment ELSE 0 END),0) AS revenue
+    FROM orders GROUP BY payment_method ORDER BY orders DESC
+  `).all();
+
+  const statuses=db.prepare(`
+    SELECT status,COUNT(*) AS orders
+    FROM orders GROUP BY status ORDER BY orders DESC
+  `).all();
+
+  const last7=db.prepare(`
+    SELECT COUNT(*) AS orders,
+      COALESCE(SUM(CASE WHEN status='Completed' THEN total_payment ELSE 0 END),0) AS revenue
+    FROM orders
+    WHERE datetime(created_at) >= datetime('now','-7 days')
+  `).get();
+
+  const completionRate=Number(totals.orders||0)>0
+    ? (Number(totals.completed||0)/Number(totals.orders))*100
+    : 0;
+
+  res.json({totals:{...totals,completionRate},daily,methods,payments,statuses,last7});
 });
 
 
@@ -1080,7 +1111,7 @@ app.use((error,_,res,__)=>{
 });
 
 app.listen(PORT,()=>{
-  console.log(`RSR Shop V7.1 Game Pass Verified running on port ${PORT}`);
+  console.log(`RSR Shop V7.5 Tutorial & Analytics running on port ${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
 });

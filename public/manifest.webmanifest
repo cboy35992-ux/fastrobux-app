@@ -26,7 +26,7 @@
       "purpose": "any maskable"
     }
   ],
-  "description": "Tracked Roblox digital orders, payment receipts and customer support.",
+  "description": "Tracked Reck Shop orders with buyer tutorials, private receipts, support and installable Android/iOS home-screen experience.",
   "id": "/",
   "display_override": [
     "window-controls-overlay",

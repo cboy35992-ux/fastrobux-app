@@ -210,3 +210,6 @@ DEPLOYMENT
 
 IOS NOTE
 This is an installable PWA. App Store publication is a separate process requiring an Apple Developer account and Apple review.
+
+
+V7.5 adds tutorial.html, the supplied YouTube Shorts tutorial, clearer customer instructions and expanded admin analytics.

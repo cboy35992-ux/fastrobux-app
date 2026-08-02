@@ -1,8 +1,8 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "7.4.0",
+  "version": "7.5.0",
   "private": true,
-  "description": "RSR Shop V7.2 Mobile & Trust Edition with Android/iOS PWA support, updated payment QR codes, editable contact information and CT/NCT verification.",
+  "description": "RSR Shop V7.5 with customer tutorials, YouTube guide, clearer CT/NCT/Instant/Gifting instructions, and expanded admin analytics.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
