@@ -494,6 +494,7 @@ async function verifyRobloxGamePass(gamePassInput, expectedPrice) {
 
   const urls = [
     `https://apis.roblox.com/game-passes/v1/game-passes/${gamePassId}/product-info`,
+    `https://apis.roblox.com/game-passes/v1/game-passes/${gamePassId}/details`,
     `https://api.roblox.com/marketplace/game-pass-product-info?gamePassId=${gamePassId}`
   ];
 
@@ -515,13 +516,16 @@ async function verifyRobloxGamePass(gamePassInput, expectedPrice) {
   }
 
   const actualPrice = Number(
+    productInfo.priceInformation?.defaultPriceInRobux ??
+    productInfo.priceInformation?.priceInRobux ??
     productInfo.price ??
     productInfo.PriceInRobux ??
     productInfo.priceInRobux ??
     productInfo.product?.priceInRobux
   );
 
-  const isForSale = productInfo.isForSale ?? productInfo.IsForSale ?? productInfo.product?.isForSale ?? true;
+  const isForSale = productInfo.priceInformation !== null &&
+    (productInfo.isForSale ?? productInfo.IsForSale ?? productInfo.product?.isForSale ?? true);
   const name = productInfo.name ?? productInfo.Name ?? productInfo.product?.name ?? `Game Pass ${gamePassId}`;
   const creatorName =
     productInfo.creator?.name ??

@@ -220,11 +220,11 @@ if (gamepassElements.verify) {
       gamepassElements.status.classList.add("success");
       gamepassElements.card.innerHTML = `
         <div>
-          <b>${esc(result.gamePass.name)}</b>
-          <span>Game Pass ID: ${esc(result.gamePass.id)}</span>
+          <b>${escapeHtml(result.gamePass.name)}</b>
+          <span>Game Pass ID: ${escapeHtml(result.gamePass.id)}</span>
           <span>Verified price: ${Number(result.gamePass.actualPrice).toLocaleString()} Robux</span>
         </div>
-        <a class="button secondary" target="_blank" rel="noopener" href="${esc(result.gamePass.url)}">Open Game Pass</a>`;
+        <a class="button secondary" target="_blank" rel="noopener" href="${escapeHtml(result.gamePass.url)}">Open Game Pass</a>`;
       gamepassElements.card.classList.remove("hidden");
       showToast("Game Pass price verified.");
     } catch (error) {

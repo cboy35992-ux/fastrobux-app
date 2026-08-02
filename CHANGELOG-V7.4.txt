@@ -1,0 +1,10 @@
+RSR Shop V7.4 CT/NCT Verification Hotfix
+
+Fixed:
+- Removed the browser error: esc is not defined.
+- Successful Game Pass verification now displays correctly.
+- Added Roblox game-pass details endpoint as a verification fallback.
+- Added support for priceInformation.defaultPriceInRobux.
+- Updated service-worker cache version so browsers load the corrected script.
+
+After deploying, use Ctrl + Shift + R once or clear site data if an old cached script remains.
