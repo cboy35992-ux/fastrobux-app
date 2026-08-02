@@ -90,3 +90,169 @@ document.querySelectorAll(".payment-layout img").forEach(img=>{
     document.body.appendChild(overlay);
   });
 });
+
+
+// V7.1 CT/NCT exact Game Pass verification.
+let verifiedGamePassData = null;
+const gamepassElements = {
+  panel: document.getElementById("gamepassRequirements"),
+  username: document.getElementById("ctNctUsername"),
+  link: document.getElementById("gamepassLink"),
+  status: document.getElementById("gamepassStatus"),
+  desired: document.getElementById("gamepassDesiredAmount"),
+  required: document.getElementById("gamepassRequiredPrice"),
+  verify: document.getElementById("verifyGamepass"),
+  card: document.getElementById("verifiedGamepassCard")
+};
+
+function currentMethodKeyForGamepass() {
+  const checked = document.querySelector('input[name="method"]:checked, input[name="methodKey"]:checked');
+  if (checked) return String(checked.value || "").toLowerCase();
+  return String(window.selectedMethodKey || window.methodKey || "").toLowerCase();
+}
+
+function currentDesiredAmountForGamepass() {
+  const candidates = [
+    document.getElementById("amount"),
+    document.getElementById("desiredAmount"),
+    document.getElementById("robuxAmount")
+  ];
+  for (const el of candidates) {
+    const value = Number(String(el?.value || "").replace(/,/g, ""));
+    if (Number.isFinite(value) && value > 0) return Math.floor(value);
+  }
+  return 0;
+}
+
+function requiredPassPrice(methodKey, amount) {
+  if (!amount) return 0;
+  if (methodKey === "ct") return Math.ceil(amount / 0.7);
+  if (methodKey === "nct") return amount;
+  return 0;
+}
+
+function resetGamepassVerification(message="Not verified") {
+  verifiedGamePassData = null;
+  if (gamepassElements.status) {
+    gamepassElements.status.textContent = message;
+    gamepassElements.status.classList.remove("success");
+  }
+  if (gamepassElements.card) {
+    gamepassElements.card.classList.add("hidden");
+    gamepassElements.card.innerHTML = "";
+  }
+}
+
+function updateGamepassRequirements() {
+  if (!gamepassElements.panel) return;
+  const methodKey = currentMethodKeyForGamepass();
+  const amount = currentDesiredAmountForGamepass();
+  const needed = methodKey === "ct" || methodKey === "nct";
+  gamepassElements.panel.classList.toggle("hidden", !needed);
+
+  if (gamepassElements.desired) gamepassElements.desired.textContent = amount.toLocaleString();
+  const required = requiredPassPrice(methodKey, amount);
+  if (gamepassElements.required) gamepassElements.required.textContent = `${required.toLocaleString()} Robux`;
+
+  if (verifiedGamePassData &&
+      (verifiedGamePassData.methodKey !== methodKey ||
+       Number(verifiedGamePassData.customerAmount) !== amount)) {
+    resetGamepassVerification("Re-verification required");
+  }
+}
+
+document.addEventListener("change", event => {
+  if (event.target.matches('input[name="method"],input[name="methodKey"]')) {
+    updateGamepassRequirements();
+  }
+});
+document.addEventListener("input", event => {
+  if (["amount","desiredAmount","robuxAmount","ctNctUsername","gamepassLink"].includes(event.target.id)) {
+    if (event.target.id === "ctNctUsername" || event.target.id === "gamepassLink") {
+      resetGamepassVerification("Re-verification required");
+    }
+    updateGamepassRequirements();
+  }
+});
+
+if (gamepassElements.verify) {
+  gamepassElements.verify.addEventListener("click", async () => {
+    const methodKey = currentMethodKeyForGamepass();
+    const amount = currentDesiredAmountForGamepass();
+    const username = gamepassElements.username?.value.trim() || "";
+    const gamePassLink = gamepassElements.link?.value.trim() || "";
+
+    if (!["ct","nct"].includes(methodKey)) return;
+    if (!username) return showToast("Enter the Roblox username.", "error");
+    if (!gamePassLink) return showToast("Paste the Roblox Game Pass link.", "error");
+    if (!amount) return showToast("Enter the desired Robux amount.", "error");
+
+    gamepassElements.verify.disabled = true;
+    gamepassElements.verify.textContent = "Verifying with Roblox…";
+    try {
+      const result = await api("/api/gamepass/verify", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({methodKey, amount, username, gamePassLink})
+      });
+      verifiedGamePassData = result;
+      gamepassElements.status.textContent = "Verified ✓";
+      gamepassElements.status.classList.add("success");
+      gamepassElements.card.innerHTML = `
+        <div>
+          <b>${esc(result.gamePass.name)}</b>
+          <span>Game Pass ID: ${esc(result.gamePass.id)}</span>
+          <span>Verified price: ${Number(result.gamePass.actualPrice).toLocaleString()} Robux</span>
+        </div>
+        <a class="button secondary" target="_blank" rel="noopener" href="${esc(result.gamePass.url)}">Open Game Pass</a>`;
+      gamepassElements.card.classList.remove("hidden");
+      showToast("Game Pass price verified.");
+    } catch (error) {
+      resetGamepassVerification("Verification failed");
+      showToast(error.message || "Game Pass verification failed.", "error");
+    } finally {
+      gamepassElements.verify.disabled = false;
+      gamepassElements.verify.textContent = "Verify Username & Game Pass";
+    }
+  });
+}
+
+// Add CT/NCT fields to all JSON order requests and block unverified submission.
+const originalFetchForGamepass = window.fetch.bind(window);
+window.fetch = async (input, init = {}) => {
+  try {
+    const url = typeof input === "string" ? input : input.url;
+    const method = String(init.method || "GET").toUpperCase();
+    if (method === "POST" && /\/api\/orders(?:$|\?)/.test(url) && init.body) {
+      const payload = JSON.parse(init.body);
+      const methodKey = String(payload.methodKey || currentMethodKeyForGamepass()).toLowerCase();
+
+      if (methodKey === "ct" || methodKey === "nct") {
+        updateGamepassRequirements();
+        const amount = Number(payload.amount || currentDesiredAmountForGamepass());
+        if (!verifiedGamePassData ||
+            verifiedGamePassData.methodKey !== methodKey ||
+            Number(verifiedGamePassData.customerAmount) !== Math.floor(amount)) {
+          throw new Error("Verify the Roblox username and exact Game Pass price before continuing.");
+        }
+        payload.robloxUsername = gamepassElements.username.value.trim();
+        payload.gamePassLink = gamepassElements.link.value.trim();
+        payload.gamePassId = verifiedGamePassData.gamePass.id;
+        init.body = JSON.stringify(payload);
+      }
+    }
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      // Preserve non-JSON requests.
+    } else {
+      showToast(error.message, "error");
+      return new Response(JSON.stringify({error:error.message}), {
+        status: 400,
+        headers: {"Content-Type":"application/json"}
+      });
+    }
+  }
+  return originalFetchForGamepass(input, init);
+};
+
+setTimeout(updateGamepassRequirements, 0);

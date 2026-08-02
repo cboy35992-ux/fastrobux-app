@@ -177,11 +177,11 @@ const defaultSettings = {
   maintenance_mode: "false",
   business_name: "Reck Shop",
   business_owner_display: "",
-  business_email: "",
-  business_phone: "",
-  business_address: "",
+  business_email: "reckshopemergencycontact@gmail.com",
+  business_phone: "09121656529",
+  business_address: "Philippines",
   support_hours: "Daily, 9:00 AM–10:00 PM Philippine Time",
-  facebook_url: "",
+  facebook_url: "https://www.facebook.com/profile.php?id=61592736479803",
   discord_url: "",
   trust_notice: "Reck Shop never asks for your Roblox password, verification code, or cookie.",
   public_stats_enabled: "true",
@@ -429,10 +429,126 @@ async function discordOrder(order) {
   } catch(error) { console.error("Discord webhook:",error.message); }
 }
 
+
+function normalizeGamePassId(input) {
+  const value = String(input || "").trim();
+  if (/^\d+$/.test(value)) return value;
+  const patterns = [
+    /\/game-pass\/(\d+)/i,
+    /\/game-pass(?:es)?\/(\d+)/i,
+    /[?&]id=(\d+)/i
+  ];
+  for (const pattern of patterns) {
+    const match = value.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+function requiredGamePassPrice(methodKey, customerAmount) {
+  const amount = Math.floor(Number(customerAmount));
+  if (!Number.isFinite(amount) || amount < 1) return null;
+
+  // CT: buyer pays enough so the receiver gets the full desired amount after Roblox's 30% fee.
+  if (methodKey === "ct") return Math.ceil(amount / 0.7);
+
+  // NCT: buyer purchases a pass equal to the selected Robux amount; receiver gets the post-fee amount.
+  if (methodKey === "nct") return amount;
+
+  return null;
+}
+
+async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    const text = await response.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch {}
+    return { response, data };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function verifyRobloxGamePass(gamePassInput, expectedPrice) {
+  const gamePassId = normalizeGamePassId(gamePassInput);
+  if (!gamePassId) {
+    return { ok: false, error: "Enter a valid Roblox Game Pass link or numeric Game Pass ID." };
+  }
+
+  let productInfo = null;
+  let lastError = "";
+
+  const urls = [
+    `https://apis.roblox.com/game-passes/v1/game-passes/${gamePassId}/product-info`,
+    `https://api.roblox.com/marketplace/game-pass-product-info?gamePassId=${gamePassId}`
+  ];
+
+  for (const url of urls) {
+    try {
+      const { response, data } = await fetchJsonWithTimeout(url);
+      if (response.ok && data && Object.keys(data).length) {
+        productInfo = data;
+        break;
+      }
+      lastError = data?.message || data?.errors?.[0]?.message || `Roblox returned ${response.status}.`;
+    } catch (error) {
+      lastError = error.name === "AbortError" ? "Roblox verification timed out." : error.message;
+    }
+  }
+
+  if (!productInfo) {
+    return { ok: false, error: lastError || "Unable to verify this Game Pass with Roblox right now." };
+  }
+
+  const actualPrice = Number(
+    productInfo.price ??
+    productInfo.PriceInRobux ??
+    productInfo.priceInRobux ??
+    productInfo.product?.priceInRobux
+  );
+
+  const isForSale = productInfo.isForSale ?? productInfo.IsForSale ?? productInfo.product?.isForSale ?? true;
+  const name = productInfo.name ?? productInfo.Name ?? productInfo.product?.name ?? `Game Pass ${gamePassId}`;
+  const creatorName =
+    productInfo.creator?.name ??
+    productInfo.Creator?.Name ??
+    productInfo.creatorName ??
+    "";
+
+  if (!Number.isFinite(actualPrice)) {
+    return { ok: false, error: "Roblox did not return a valid price for this Game Pass." };
+  }
+  if (!isForSale) {
+    return { ok: false, error: "This Game Pass is not currently for sale." };
+  }
+  if (Number(actualPrice) !== Number(expectedPrice)) {
+    return {
+      ok: false,
+      error: `Game Pass price mismatch. Required: ${Number(expectedPrice).toLocaleString()} Robux. Current Game Pass price: ${actualPrice.toLocaleString()} Robux.`,
+      gamePass: { id: gamePassId, name, creatorName, actualPrice, expectedPrice }
+    };
+  }
+
+  return {
+    ok: true,
+    gamePass: {
+      id: gamePassId,
+      url: `https://www.roblox.com/game-pass/${gamePassId}`,
+      name,
+      creatorName,
+      actualPrice,
+      expectedPrice
+    }
+  };
+}
+
 app.get("/api/health",(_,res)=>{
   res.json({
     ok:true,
-    version:"V7 Trust Edition",
+    version:"V7.1 Game Pass Verified",
     database:"SQLite",
     databasePath:DB_PATH,
     storage:process.env.DATA_ROOT?"persistent disk":"local development",
@@ -441,6 +557,44 @@ app.get("/api/health",(_,res)=>{
 });
 
 app.get("/api/settings",(_,res)=>res.json(settingsObject()));
+
+app.post("/api/gamepass/verify", express.json(), async (req, res) => {
+  try {
+    const methodKey = String(req.body?.methodKey || "").toLowerCase();
+    const amount = Math.floor(Number(req.body?.amount));
+    const username = String(req.body?.username || "").trim();
+    const gamePassLink = String(req.body?.gamePassLink || "").trim();
+
+    if (!["ct", "nct"].includes(methodKey)) {
+      return res.status(400).json({ error: "Game Pass verification is only required for Covered Tax and Not Covered Tax." });
+    }
+    if (!username || username.length < 3 || username.length > 20 || !/^[A-Za-z0-9_]+$/.test(username)) {
+      return res.status(400).json({ error: "Enter a valid Roblox username." });
+    }
+
+    const expectedPrice = requiredGamePassPrice(methodKey, amount);
+    if (!expectedPrice) {
+      return res.status(400).json({ error: "Enter a valid desired Robux amount." });
+    }
+
+    const result = await verifyRobloxGamePass(gamePassLink, expectedPrice);
+    if (!result.ok) return res.status(400).json(result);
+
+    res.json({
+      ok: true,
+      username,
+      methodKey,
+      customerAmount: amount,
+      expectedPrice,
+      gamePass: result.gamePass,
+      note: "The verified price must remain unchanged until the order is submitted."
+    });
+  } catch (error) {
+    console.error("Game Pass verification error:", error);
+    res.status(500).json({ error: "Unable to verify the Game Pass right now." });
+  }
+});
+
 
 app.get("/api/trust", (_, res) => {
   const cfg = settingsObject();
@@ -627,6 +781,27 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
     const total=Math.max(0,subtotal-discount);
     const paymentName=String(body.paymentMethod||"");
     if(cfg.paymentEnabled && cfg.paymentEnabled[paymentName]===false) throw new Error("This payment method is currently unavailable.");
+
+
+    let verifiedGamePass = null;
+    if (["ct", "nct"].includes(methodKey)) {
+      const robloxUsername = String(body.robloxUsername || body.username || "").trim();
+      const gamePassLink = String(body.gamePassLink || "").trim();
+
+      if (!robloxUsername || !/^[A-Za-z0-9_]{3,20}$/.test(robloxUsername)) {
+        throw new Error("A valid Roblox username is required for Covered Tax and Not Covered Tax orders.");
+      }
+      if (!gamePassLink) {
+        throw new Error("A Roblox Game Pass link is required for Covered Tax and Not Covered Tax orders.");
+      }
+
+      const expectedGamePassPrice = requiredGamePassPrice(methodKey, amount);
+      const verification = await verifyRobloxGamePass(gamePassLink, expectedGamePassPrice);
+      if (!verification.ok) throw new Error(verification.error);
+
+      verifiedGamePass = verification.gamePass;
+      body.robloxUsername = robloxUsername;
+    }
 
     let reserved=0,reservationExpiresAt=null;
     if(methodKey==="instant"){
@@ -888,7 +1063,7 @@ app.use((error,_,res,__)=>{
 });
 
 app.listen(PORT,()=>{
-  console.log(`RSR Shop V7 Trust Edition running on port ${PORT}`);
+  console.log(`RSR Shop V7.1 Game Pass Verified running on port ${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
 });

@@ -97,7 +97,42 @@
     </div>
   </section>
 
-  <section class="panel">
+  
+<div id="gamepassRequirements" class="gamepass-requirements hidden">
+  <div class="requirement-heading">
+    <div>
+      <span class="eyebrow">REQUIRED FOR CT / NCT</span>
+      <h3>Verify your Roblox username and Game Pass</h3>
+    </div>
+    <span id="gamepassStatus" class="status-pill">Not verified</span>
+  </div>
+
+  <div class="two-columns">
+    <label>Roblox Username
+      <input id="ctNctUsername" maxlength="20" autocomplete="off" placeholder="Example: CraftReck">
+    </label>
+    <label>Game Pass Link
+      <input id="gamepassLink" type="url" autocomplete="off" placeholder="https://www.roblox.com/game-pass/123456789/...">
+    </label>
+  </div>
+
+  <div class="gamepass-price-check">
+    <div><span>Desired Robux</span><b id="gamepassDesiredAmount">0</b></div>
+    <div><span>Required Game Pass Price</span><b id="gamepassRequiredPrice">0 Robux</b></div>
+  </div>
+
+  <div class="gamepass-warning">
+    <strong>Important:</strong>
+    The Game Pass price must exactly match the required price shown above.
+    If the Roblox Game Pass price is different, the transaction will not proceed.
+    Do not change the price after verification until the order is submitted.
+  </div>
+
+  <button id="verifyGamepass" type="button" class="button secondary">Verify Username & Game Pass</button>
+  <div id="verifiedGamepassCard" class="verified-gamepass hidden"></div>
+</div>
+
+<section class="panel">
     <div class="section-title"><span>3</span><div><h2>Choose Payment and Upload Receipt</h2><p>Philippine and international methods are available.</p></div></div>
     <div class="payment-grid">
       <label class="payment-card active"><input type="radio" name="paymentMethod" value="GCash" checked><b>GCash / InstaPay</b><span>Philippines</span></label>

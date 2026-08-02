@@ -157,3 +157,29 @@ IMPORTANT:
 Only publish business details that are accurate and verifiable.
 Do not claim government registration, SSL certification, encryption standards,
 customer totals or success rates unless you can prove them.
+
+
+RSR SHOP V7.1 GAME PASS VERIFIED
+
+Default editable Trust Center details:
+- Facebook: https://www.facebook.com/profile.php?id=61592736479803
+- Email: reckshopemergencycontact@gmail.com
+- Phone: 09121656529
+- Business location: Philippines
+
+These details can be changed anytime in:
+Admin → Trust Center & Business Profile → Save Trust Center
+
+CT / NCT improvements:
+- Roblox username is required.
+- Roblox Game Pass link is required.
+- The server checks the live Game Pass price with Roblox.
+- Covered Tax required price = ceiling(desired Robux / 0.70).
+- Not Covered Tax required Game Pass price = desired Robux amount.
+- If the live Game Pass price does not exactly match the required price, checkout is blocked.
+- The server checks the price again when the customer submits the order.
+- Verified Game Pass information is stored with the order when supported by the existing database migration.
+
+IMPORTANT:
+Test with a low-value private Game Pass in staging first.
+Do not ask customers for Roblox passwords, cookies or verification codes.

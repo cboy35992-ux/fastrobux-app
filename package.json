@@ -1,8 +1,8 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "7.0.0",
+  "version": "7.1.0",
   "private": true,
-  "description": "RSR Shop V7 Trust Edition with transparent trust center, real public stats, verified reviews, business profile, service status and stronger customer confidence features.",
+  "description": "RSR Shop V7.1 Game Pass Verified with exact CT/NCT price validation, editable trust details and secure server-side checkout checks.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
