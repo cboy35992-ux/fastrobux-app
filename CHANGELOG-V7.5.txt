@@ -1,7 +1,25 @@
-node_modules/
-.env
-data/*.db
-data/*.db-*
-uploads/*
-!uploads/.gitkeep
-*.log
+RSR SHOP V7.5 — TUTORIAL & ANALYTICS
+
+CUSTOMER IMPROVEMENTS
+- Added a complete tutorial.html buyer guide.
+- Embedded YouTube Short: https://www.youtube.com/shorts/1i6fGhZ5GL0
+- Added clear Covered Tax and Not Covered Tax instructions.
+- Added exact Game Pass creation and exact-price instructions.
+- Added Robux Instant explanation and Pending Robux warning.
+- Added In-Game Gifting workflow and availability warning.
+- Added receipt requirements and status explanations.
+- Added tutorial links to the homepage navigation and order-method area.
+
+ADMIN ANALYTICS
+- Completion rate.
+- Average completed-order amount.
+- Last 7 days orders and revenue.
+- Orders/revenue by purchase method.
+- Orders/revenue by payment method.
+- Status distribution.
+- Existing 30-day daily table remains.
+
+SAFETY
+- Never request Roblox passwords, cookies, verification codes or 2FA codes.
+- Instant delivery wording does not guarantee Roblox processing time.
+- Gifting availability must be confirmed before promising delivery.

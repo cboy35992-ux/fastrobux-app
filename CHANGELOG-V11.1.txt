@@ -1,0 +1,8 @@
+RSR SHOP V11.1 — RENDER STORAGE HOTFIX
+
+- Fixes EACCES: permission denied, mkdir /var/data when no Render persistent disk is attached.
+- Tests DATA_ROOT for write access during startup.
+- Automatically falls back to a writable runtime-data folder so the service can start.
+- Preserves V11 authentication and separated mobile checkout.
+
+IMPORTANT: fallback storage is temporary on Render Free. For permanent data, attach a Render persistent disk mounted at /var/data or use an external database/storage service.

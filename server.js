@@ -33,13 +33,30 @@ const OAUTH_ENABLED_FACEBOOK = Boolean(FACEBOOK_APP_ID && FACEBOOK_APP_SECRET);
 
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, "public");
-const PERSISTENT_ROOT = process.env.DATA_ROOT ? path.resolve(process.env.DATA_ROOT) : ROOT;
-const DATA_DIR = process.env.DATA_ROOT ? path.join(PERSISTENT_ROOT, "data") : path.join(ROOT, "data");
-const UPLOADS_DIR = process.env.DATA_ROOT ? path.join(PERSISTENT_ROOT, "uploads") : path.join(ROOT, "uploads");
+const CONFIGURED_DATA_ROOT = String(process.env.DATA_ROOT || "").trim();
+let PERSISTENT_ROOT = CONFIGURED_DATA_ROOT ? path.resolve(CONFIGURED_DATA_ROOT) : ROOT;
+let STORAGE_MODE = CONFIGURED_DATA_ROOT ? "configured" : "local";
 
-for (const dir of [PERSISTENT_ROOT, DATA_DIR, UPLOADS_DIR]) {
-  fs.mkdirSync(dir, { recursive: true });
+function ensureWritableRoot(candidate) {
+  fs.mkdirSync(candidate, { recursive: true });
+  const probe = path.join(candidate, `.rsr-write-test-${process.pid}`);
+  fs.writeFileSync(probe, "ok");
+  fs.unlinkSync(probe);
+  return candidate;
 }
+
+try {
+  ensureWritableRoot(PERSISTENT_ROOT);
+} catch (error) {
+  const fallback = path.join(ROOT, "runtime-data");
+  console.warn(`[storage] DATA_ROOT ${PERSISTENT_ROOT} is not writable (${error.code || error.message}). Falling back to ${fallback}.`);
+  PERSISTENT_ROOT = ensureWritableRoot(fallback);
+  STORAGE_MODE = "ephemeral-fallback";
+}
+
+const DATA_DIR = path.join(PERSISTENT_ROOT, "data");
+const UPLOADS_DIR = path.join(PERSISTENT_ROOT, "uploads");
+for (const dir of [DATA_DIR, UPLOADS_DIR]) fs.mkdirSync(dir, { recursive: true });
 
 const DB_PATH = path.join(DATA_DIR, "rsr-shop.db");
 const db = new Database(DB_PATH);
@@ -797,7 +814,7 @@ app.get("/api/health",async(_,res)=>{
     database:databaseOk?"online":"unavailable",
     email:{enabled:EMAIL_ENABLED,online:emailOk,message:emailMessage},
     oauth:{google:OAUTH_ENABLED_GOOGLE,facebook:OAUTH_ENABLED_FACEBOOK},
-    storage:process.env.DATA_ROOT?"persistent disk":"local development",
+    storage:STORAGE_MODE,
     now:nowIso()
   });
 });
@@ -1625,7 +1642,7 @@ app.use((error,_,res,__)=>{
 });
 
 app.listen(PORT,()=>{
-  console.log(`RSR Shop V11 Authentication & Reliability Edition running on port ${PORT}`);
+  console.log(`RSR Shop V11.1 Render Storage Hotfix running on port ${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
 });
