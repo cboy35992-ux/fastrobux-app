@@ -1,0 +1,16 @@
+RSR SHOP V10.1 — FULL TRANSLATION EDITION
+
+- Stronger translation engine now translates static text, newly inserted text, buttons, select options, placeholders, titles and accessibility labels.
+- Dynamic checkout, notification, order-status, dispute and validation wording is translated.
+- Complete expanded Filipino, Cebuano and Spanish customer wording.
+- Added Portuguese, Vietnamese, French, German, Indonesian, Japanese, Korean, Chinese, Thai and Arabic choices.
+- Added right-to-left layout support for Arabic.
+- Buyer language selection is remembered.
+- Browser language detection remains supported.
+- Admin Translation Editor allows any phrase to be corrected without GitHub or Render redeployment.
+- Translation overrides are stored permanently in the database.
+- Mobile language selector improved.
+- V10 checkout, security, notifications, disputes, admin operations and all earlier features are preserved.
+
+NOTE:
+Admin-entered names, URLs, Roblox usernames, payment references, user chat messages and custom business text remain exactly as entered unless the admin creates a translation override for that exact phrase.

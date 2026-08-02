@@ -1,8 +1,8 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "10.0.0",
+  "version": "10.2.0",
   "private": true,
-  "description": "RSR Shop V10 Smart Operations Edition: guided checkout, notifications, fraud flags, disputes, admin notes, templates, security center, analytics and recovery tools.",
+  "description": "RSR Shop V10.2 with separated mobile checkout steps, sticky progress navigation, automatic CT/NCT Game Pass step skipping, and reduced phone scrolling.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

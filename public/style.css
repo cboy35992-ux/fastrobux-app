@@ -130,3 +130,69 @@
 
 /* V10 Smart Operations */
 .v10-checklist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.v10-checklist>div{display:flex;gap:10px;align-items:center;padding:12px;border:1px solid var(--border);border-radius:12px}.v10-checklist .done{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.35)}.v10-checklist .done span{color:#86efac}.v10-checklist .pending{opacity:.72}.v10-security-note{margin-top:14px;padding:13px;border-radius:12px;background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.28)}.v10-confirm-modal{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:18px;background:rgba(2,6,23,.86);backdrop-filter:blur(8px)}.v10-confirm-modal.hidden{display:none}.v10-confirm-card{position:relative;width:min(100%,680px);max-height:92vh;overflow:auto;padding:24px;border:1px solid rgba(139,92,246,.45);border-radius:22px;background:#0f172a}.v10-close{position:absolute;right:14px;top:10px;border:0;background:transparent;color:#fff;font-size:30px}.method-disabled{opacity:.45;cursor:not-allowed}.method-disabled small{display:block;color:#fca5a5;margin-top:6px}.unread-row{border-color:rgba(139,92,246,.55)!important;background:rgba(139,92,246,.09)!important}.v10-order-tools{margin-top:18px}.quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.template-edit{display:grid;gap:8px;padding:14px;border:1px solid var(--border);border-radius:14px}.v10-command-center .stats-grid strong{font-size:1.25rem}@media(max-width:700px){.v10-checklist{grid-template-columns:1fr}.v10-confirm-card{padding:20px 16px}}
+
+/* V10.1 full translation */
+.language-control{position:relative;max-width:100%}.language-control small{display:none}
+.translation-list{display:grid;gap:8px;margin-top:16px;max-height:440px;overflow:auto}
+.translation-row{display:flex;justify-content:space-between;align-items:center;gap:15px;text-align:left;padding:13px;border:1px solid var(--border);border-radius:12px;background:rgba(15,23,42,.55)}
+.translation-row span{display:flex;flex-direction:column;gap:4px}.translation-row small{color:var(--muted)}.translation-row em{color:#c4b5fd}
+.rtl-language{direction:rtl}.rtl-language .navbar,.rtl-language .order-row,.rtl-language .details-grid>div{direction:rtl;text-align:right}
+.rtl-language input,.rtl-language textarea,.rtl-language select{direction:rtl;text-align:right}
+@media(max-width:760px){.language-control{position:sticky;top:6px;z-index:30;background:#0f172a}.language-control select{font-size:16px;min-height:42px}}
+
+
+/* V10.2 separated mobile checkout */
+.checkout-wizard{margin:22px auto;scroll-margin-top:12px}
+.checkout-wizard-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:12px;padding:17px 19px;border:1px solid var(--border);border-radius:17px;background:linear-gradient(145deg,rgba(139,92,246,.14),rgba(15,23,42,.92))}
+.checkout-progress-copy{display:flex;flex-direction:column;gap:3px}
+.checkout-progress-copy b{font-size:1.15rem}
+.checkout-progress-copy small{color:var(--muted)}
+.checkout-progress-track{width:min(42%,320px);height:9px;overflow:hidden;border-radius:999px;background:rgba(148,163,184,.16)}
+.checkout-progress-track span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#7c3aed,#a855f7);transition:width .25s ease}
+.checkout-step-tabs{position:sticky;top:8px;z-index:35;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:13px;padding:8px;border:1px solid var(--border);border-radius:16px;background:rgba(8,15,30,.94);backdrop-filter:blur(14px)}
+.checkout-step-tabs button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:8px 10px;border:1px solid transparent;border-radius:11px;background:transparent;color:var(--muted)}
+.checkout-step-tabs button span{display:grid;place-items:center;min-width:27px;height:27px;border-radius:50%;background:rgba(148,163,184,.14);font-weight:800}
+.checkout-step-tabs button.active{border-color:rgba(139,92,246,.5);background:rgba(139,92,246,.16);color:#fff}
+.checkout-step-tabs button.active span{background:linear-gradient(135deg,#7c3aed,#a855f7)}
+.checkout-step-tabs button.complete span{background:rgba(34,197,94,.2);color:#86efac}
+.checkout-step-host{min-height:320px}
+.checkout-step-pane[hidden]{display:none!important}
+.checkout-step-pane.active{animation:checkoutStepIn .18s ease}
+.checkout-contained-section{margin:0!important}
+.checkout-step-pane .checkout-contained-section+.checkout-contained-section{margin-top:14px!important}
+.checkout-mobile-actions{display:flex;justify-content:space-between;gap:10px;margin-top:13px;padding:12px;border:1px solid var(--border);border-radius:15px;background:rgba(8,15,30,.92)}
+.checkout-mobile-actions .button{min-width:135px}
+.checkout-mobile-actions .invisible{visibility:hidden}
+.checkout-continue-payment{margin-top:12px}
+@keyframes checkoutStepIn{from{opacity:.35;transform:translateY(7px)}to{opacity:1;transform:none}}
+
+@media(max-width:700px){
+  body{padding-bottom:88px}
+  .checkout-wizard{margin:12px -2px 18px}
+  .checkout-wizard-head{align-items:stretch;flex-direction:column;padding:13px 14px;margin-bottom:8px}
+  .checkout-progress-track{width:100%}
+  .checkout-step-tabs{top:4px;grid-template-columns:repeat(4,minmax(64px,1fr));gap:4px;overflow-x:auto;padding:5px;border-radius:13px}
+  .checkout-step-tabs button{flex-direction:column;gap:3px;min-height:57px;padding:5px 4px;font-size:11px;white-space:nowrap}
+  .checkout-step-tabs button span{min-width:23px;height:23px;font-size:11px}
+  .checkout-step-host{min-height:0}
+  .checkout-step-pane>.panel{padding:16px 13px}
+  .checkout-step-pane .section-title{align-items:flex-start}
+  .checkout-step-pane .method-grid,
+  .checkout-step-pane .payment-grid{grid-template-columns:1fr 1fr}
+  .checkout-step-pane .method-card,
+  .checkout-step-pane .payment-card{min-height:auto;padding:12px 9px}
+  .checkout-step-pane .method-card p{display:none}
+  .checkout-step-pane .calculation{margin-top:12px}
+  .checkout-step-pane .payment-layout{grid-template-columns:1fr;text-align:center}
+  .checkout-step-pane .payment-layout img{width:min(76vw,280px);margin:auto}
+  .checkout-mobile-actions{position:fixed;left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));z-index:80;margin:0;padding:8px;box-shadow:0 18px 45px rgba(0,0,0,.45);backdrop-filter:blur(16px)}
+  .checkout-mobile-actions .button{flex:1;min-width:0;min-height:48px}
+  .v10-checklist{grid-template-columns:1fr}
+  .gamepass-requirements .requirement-heading{gap:8px}
+}
+
+@media(max-width:430px){
+  .checkout-step-pane .method-grid,
+  .checkout-step-pane .payment-grid{grid-template-columns:1fr}
+  .checkout-step-tabs button b{font-size:10px}
+}

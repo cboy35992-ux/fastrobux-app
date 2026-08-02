@@ -226,3 +226,11 @@ V9.4 adds editable delivery estimates, loyalty summaries, CSV order export, mobi
 
 
 V10 Smart Operations: see CHANGELOG-V10.txt. Keep the same persistent DATA_ROOT and uploads disk during deployment.
+
+
+V10.1 FULL TRANSLATION
+Use Admin → Translation Editor to correct or add any exact customer-facing phrase. Overrides are stored in SQLite and require no redeploy.
+
+
+V10.2 MOBILE CHECKOUT
+The public order form is separated into Method, Account, Game Pass, and Payment steps. CT/NCT includes Game Pass; Instant/Gifting skips that step automatically.

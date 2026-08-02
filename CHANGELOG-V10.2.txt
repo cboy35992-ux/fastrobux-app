@@ -1,0 +1,17 @@
+RSR SHOP V10.2 — SEPARATED MOBILE CHECKOUT
+
+- The long order form is now separated into clear steps:
+  1. Method
+  2. Roblox Account & Amount
+  3. Game Pass Verification (CT/NCT only)
+  4. Payment & Receipt
+- Only one order step is displayed at a time.
+- Sticky step progress remains visible while using a phone.
+- Mobile Back and Next controls stay at the bottom of the screen.
+- Instant and Gifting automatically skip the unnecessary Game Pass step.
+- Buyers cannot move forward until required information in the current step is complete.
+- Successful Game Pass verification provides a direct Continue to Payment button.
+- Payment and receipt fields no longer require scrolling through every earlier order section.
+- The checkout step is remembered temporarily during the same browser session.
+- Added Filipino, Cebuano and Spanish wording for the new checkout controls.
+- All V10.1 translations, notifications, security, admin tools, accounts and order systems are preserved.

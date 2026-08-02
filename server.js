@@ -191,6 +191,15 @@ CREATE TABLE IF NOT EXISTS message_templates (
   message TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS translation_overrides (
+  language TEXT NOT NULL,
+  source_text TEXT NOT NULL,
+  translated_text TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY(language, source_text)
+);
+
 CREATE TABLE IF NOT EXISTS site_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   session_key TEXT,
@@ -1305,6 +1314,39 @@ app.get("/api/admin/analytics",requireAdmin,(req,res)=>{
 
 
 
+
+// V10.1 translation overrides.
+app.get("/api/translations/:language",(req,res)=>{
+  const language=String(req.params.language||"").toLowerCase().slice(0,10);
+  const rows=db.prepare("SELECT source_text,translated_text FROM translation_overrides WHERE language=?").all(language);
+  res.json({language,translations:Object.fromEntries(rows.map(row=>[row.source_text,row.translated_text]))});
+});
+app.get("/api/admin/translations",requireAdmin,(req,res)=>{
+  const language=String(req.query.language||"fil").toLowerCase().slice(0,10);
+  res.json({language,translations:db.prepare("SELECT source_text AS sourceText,translated_text AS translatedText,updated_at AS updatedAt FROM translation_overrides WHERE language=? ORDER BY source_text").all(language)});
+});
+app.put("/api/admin/translations",requireAdmin,(req,res)=>{
+  const language=String(req.body.language||"").toLowerCase().slice(0,10);
+  const sourceText=String(req.body.sourceText||"").trim().slice(0,500);
+  const translatedText=String(req.body.translatedText||"").trim().slice(0,1000);
+  const allowed=["fil","ceb","es","pt","vi","fr","de","id","ja","ko","zh","th","ar"];
+  if(!allowed.includes(language))return res.status(400).json({error:"Unsupported language."});
+  if(!sourceText||!translatedText)return res.status(400).json({error:"English source and translated text are required."});
+  db.prepare(`INSERT INTO translation_overrides(language,source_text,translated_text,updated_at)
+    VALUES (?,?,?,?) ON CONFLICT(language,source_text)
+    DO UPDATE SET translated_text=excluded.translated_text,updated_at=excluded.updated_at`)
+    .run(language,sourceText,translatedText,nowIso());
+  audit("translation_saved",`${language}: ${sourceText}`);
+  res.json({ok:true});
+});
+app.delete("/api/admin/translations",(req,res,next)=>requireAdmin(req,res,()=>{
+  const language=String(req.body.language||"").toLowerCase().slice(0,10);
+  const sourceText=String(req.body.sourceText||"").trim().slice(0,500);
+  db.prepare("DELETE FROM translation_overrides WHERE language=? AND source_text=?").run(language,sourceText);
+  audit("translation_deleted",`${language}: ${sourceText}`);
+  res.json({ok:true});
+}));
+
 app.post("/api/events",(req,res)=>{
   const allowed=["page_view","checkout_start","order_submit_attempt","install_help","language_change"];
   const eventType=String(req.body.eventType||"");
@@ -1397,7 +1439,7 @@ app.use((error,_,res,__)=>{
 });
 
 app.listen(PORT,()=>{
-  console.log(`RSR Shop V10 Smart Operations Edition running on port ${PORT}`);
+  console.log(`RSR Shop V10.1 Full Translation Edition running on port ${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
 });
