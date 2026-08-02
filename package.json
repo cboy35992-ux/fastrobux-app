@@ -1,8 +1,8 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "6.0.0",
+  "version": "6.1.0",
   "private": true,
-  "description": "RSR Shop V6 staging upgrade with PWA, live refresh, backups, payment controls and dashboard improvements.",
+  "description": "RSR Shop V6.1 Enhanced with updated QR codes, premium PWA icons, improved payments and mobile UX.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

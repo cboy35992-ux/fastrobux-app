@@ -38,3 +38,55 @@ async function loadReviews(){try{const d=await api("/api/reviews");$("reviews").
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 start().catch(e=>{$("submitMessage").className="message error";$("submitMessage").textContent=`Connection problem: ${e.message}`});
 let deferredInstallPrompt=null;window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;if($("installApp"))$("installApp").classList.remove("hidden")});if($("installApp"))$("installApp").onclick=async()=>{if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;$("installApp").classList.add("hidden")};function applyLive(x){if(!x?.settings)return;cfg=x.settings;$("supportStatus").textContent=cfg.supportOnline?"● Support Online":"● Support Away";$("supportStatus").classList.toggle("online",cfg.supportOnline);$("stockDisplay").textContent=`${num(cfg.instantStock)} Robux`;document.querySelectorAll(".payment-card").forEach(c=>{const v=c.querySelector("input")?.value,en=cfg.paymentEnabled?.[v]!==false;c.classList.toggle("hidden",!en)});if($("shopBanner")){$("shopBanner").textContent=cfg.banner?.text||"";$("shopBanner").classList.toggle("hidden",!cfg.banner?.enabled)}}setInterval(async()=>{try{applyLive(await api("/api/live"))}catch{}},10000);
+
+// V6.1 interface enhancements.
+function showToast(message, type="success") {
+  let toast=document.getElementById("rsrToast");
+  if(!toast){
+    toast=document.createElement("div");
+    toast.id="rsrToast";
+    toast.className="rsr-toast";
+    document.body.appendChild(toast);
+  }
+  toast.className=`rsr-toast ${type}`;
+  toast.textContent=message;
+  toast.classList.add("show");
+  clearTimeout(window.__rsrToastTimer);
+  window.__rsrToastTimer=setTimeout(()=>toast.classList.remove("show"),2600);
+}
+
+const secondaryInstall=document.getElementById("installAppSecondary");
+window.addEventListener("beforeinstallprompt",event=>{
+  if(secondaryInstall) secondaryInstall.classList.remove("hidden");
+});
+if(secondaryInstall){
+  secondaryInstall.onclick=()=>{
+    const mainInstall=document.getElementById("installApp");
+    if(mainInstall && !mainInstall.classList.contains("hidden")) mainInstall.click();
+    else showToast("Open your browser menu and choose Install App or Add to Home Screen.","success");
+  };
+}
+
+const copyAmountButton=document.getElementById("copyAmount");
+if(copyAmountButton){
+  copyAmountButton.onclick=async()=>{
+    const value=document.getElementById("exactAmount")?.textContent||"";
+    try{
+      await navigator.clipboard.writeText(value);
+      showToast(`Copied ${value}`);
+    }catch{
+      showToast("Could not copy automatically. Press and hold the amount.","error");
+    }
+  };
+}
+
+document.querySelectorAll(".payment-layout img").forEach(img=>{
+  img.title="Click to enlarge QR code";
+  img.addEventListener("click",()=>{
+    const overlay=document.createElement("div");
+    overlay.className="qr-overlay";
+    overlay.innerHTML=`<div class="qr-modal"><button aria-label="Close">×</button><img src="${img.src}" alt="${img.alt||"Payment QR"}"><p>Scan the QR code using your payment app.</p></div>`;
+    overlay.onclick=e=>{if(e.target===overlay||e.target.tagName==="BUTTON")overlay.remove()};
+    document.body.appendChild(overlay);
+  });
+});

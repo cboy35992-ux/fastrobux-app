@@ -402,7 +402,7 @@ async function discordOrder(order) {
 app.get("/api/health",(_,res)=>{
   res.json({
     ok:true,
-    version:"V6 Staging",
+    version:"V6.1 Enhanced",
     database:"SQLite",
     databasePath:DB_PATH,
     storage:process.env.DATA_ROOT?"persistent disk":"local development",
@@ -818,7 +818,7 @@ app.use((error,_,res,__)=>{
 });
 
 app.listen(PORT,()=>{
-  console.log(`RSR Shop V6 Staging running on port ${PORT}`);
+  console.log(`RSR Shop V6.1 Enhanced running on port ${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
 });

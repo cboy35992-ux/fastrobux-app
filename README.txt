@@ -119,3 +119,20 @@ V6 STAGING IMPROVEMENTS
 - Mobile and visual improvements
 
 Deploy to a separate staging service first. Use a separate staging disk. Test everything before replacing V5.
+
+
+V6.1 ENHANCED UPDATE
+- Replaced GCash QR using the newly supplied GCash/InstaPay image.
+- Replaced GoTyme QR using the newly supplied GoTyme/InstaPay image.
+- Added redesigned Reck Shop icons for Android, iOS, favicon and 1024px store artwork.
+- Improved PWA manifest with app shortcuts and maskable icons.
+- Added second Install App call-to-action.
+- Added QR click-to-enlarge view.
+- Added Copy Exact Amount button.
+- Added safer payment reminders and improved mobile payment layout.
+- Updated service-worker cache so browsers receive the new QR and icon files.
+
+IMPORTANT
+Deploy and test this as staging before replacing the live V5/V6 site.
+After deployment, uninstall any older Reck Shop PWA and reinstall it so the new icon appears.
+If an old QR or icon remains, clear the browser site data or wait for the service worker update.

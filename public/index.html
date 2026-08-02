@@ -10,7 +10,12 @@
   <meta property="og:type" content="website">
   <link rel="canonical" href="/">
   <link rel="stylesheet" href="style.css">
-<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#8b5cf6"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"></head>
+<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#8b5cf6"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/icons/favicon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Reck Shop">
+</head>
 <body>
 <header class="navbar">
   <a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>V5 Full Suite</small></span></a>
@@ -31,7 +36,18 @@
     <article><b>Customer Support</b><span>Every order has private customer-to-admin messaging.</span></article>
   </section>
 
-  <section id="shop" class="panel">
+  
+<section id="appPromo" class="app-promo panel">
+  <div class="app-icon-preview"><img src="/icons/icon-192.png" alt="Reck Shop app icon"></div>
+  <div class="app-promo-copy">
+    <span class="eyebrow">RECK SHOP APP</span>
+    <h2>Install Reck Shop on your phone</h2>
+    <p>Open your dashboard, orders, receipts and support faster from your home screen.</p>
+  </div>
+  <button id="installAppSecondary" class="button primary">Install App</button>
+</section>
+
+<section id="shop" class="panel">
     <div class="section-title"><span>1</span><div><h2>Choose an Order Method</h2><p>Rates are loaded from the administrator settings.</p></div></div>
     <div class="method-grid">
       <button class="method-card active" data-method="ct"><b>🛡️ Covered Tax</b><p>Receive the full selected amount.</p><strong id="rateCt">Loading…</strong></button>
@@ -80,7 +96,12 @@
     </div>
     <div class="payment-layout">
       <img id="paymentQr" src="images/gcash-qr.png" alt="Payment QR">
-      <div><h3 id="paymentTitle">Pay through GCash</h3><p id="paymentInstructions">Scan the QR and pay the exact amount.</p><div class="amount-box"><span>Exact Amount</span><b id="exactAmount">₱0.00</b></div></div>
+      <div><h3 id="paymentTitle">Pay through GCash</h3><p id="paymentInstructions">Scan the QR and pay the exact amount.</p><div class="amount-box"><span>Exact Amount</span><b id="exactAmount">₱0.00</b><button id="copyAmount" type="button">Copy</button></div></div>
+    </div>
+    <div class="payment-safety">
+      <div><strong>✓ Verify the exact amount</strong><span>Pay only the total shown on this page.</span></div>
+      <div><strong>✓ Keep your receipt</strong><span>Upload a clear PNG or JPG image.</span></div>
+      <div><strong>✓ Never share passwords</strong><span>Reck Shop never asks for your Roblox password.</span></div>
     </div>
     <div class="two-columns">
       <label>Sender Name<input id="senderName" placeholder="Name used for payment"></label>
