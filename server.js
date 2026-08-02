@@ -153,6 +153,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_messages_order ON messages(order_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+CREATE TABLE IF NOT EXISTS admin_audit (id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT NOT NULL, details TEXT, created_at TEXT NOT NULL);
 `);
 
 const defaultSettings = {
@@ -165,7 +166,15 @@ const defaultSettings = {
   rate_gifting: "300",
   paypal_email: "",
   wise_details: "",
-  payoneer_details: ""
+  payoneer_details: "",
+  payment_gcash_enabled: "true",
+  payment_gotyme_enabled: "true",
+  payment_paypal_enabled: "true",
+  payment_wise_enabled: "true",
+  payment_payoneer_enabled: "true",
+  shop_banner_enabled: "false",
+  shop_banner_text: "Welcome to Reck Shop",
+  maintenance_mode: "false"
 };
 const setSettingStmt = db.prepare("INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)");
 for (const [key, value] of Object.entries(defaultSettings)) setSettingStmt.run(key, value);
@@ -227,12 +236,26 @@ function settingsObject() {
       paypalEmail: setting("paypal_email"),
       wiseDetails: setting("wise_details"),
       payoneerDetails: setting("payoneer_details")
-    }
+    },
+    paymentEnabled: {
+      GCash: setting("payment_gcash_enabled") === "true",
+      "GoTyme Bank": setting("payment_gotyme_enabled") === "true",
+      PayPal: setting("payment_paypal_enabled") === "true",
+      Wise: setting("payment_wise_enabled") === "true",
+      Payoneer: setting("payment_payoneer_enabled") === "true"
+    },
+    banner: { enabled: setting("shop_banner_enabled") === "true", text: setting("shop_banner_text") },
+    maintenanceMode: setting("maintenance_mode") === "true"
   };
 }
 function updateSetting(key, value) {
   db.prepare("INSERT INTO settings(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(key, String(value));
 }
+
+function audit(action, details="") { try { db.prepare("INSERT INTO admin_audit(action,details,created_at) VALUES (?,?,?)").run(String(action).slice(0,120),String(details).slice(0,1500),nowIso()); } catch {} }
+function createBackupNow() { const dir=path.join(DATA_DIR,"backups"); fs.mkdirSync(dir,{recursive:true}); const name=`rsr-${new Date().toISOString().replace(/[:.]/g,"-")}.db`; return db.backup(path.join(dir,name)).then(()=>name); }
+setInterval(()=>createBackupNow().catch(()=>{}),24*60*60*1000).unref();
+
 function makeOrderNumber() {
   const prefix = new Date().toISOString().slice(0,10).replaceAll("-","");
   for (let i = 0; i < 10; i++) {
@@ -379,7 +402,7 @@ async function discordOrder(order) {
 app.get("/api/health",(_,res)=>{
   res.json({
     ok:true,
-    version:"V5 Full Suite",
+    version:"V6 Staging",
     database:"SQLite",
     databasePath:DB_PATH,
     storage:process.env.DATA_ROOT?"persistent disk":"local development",
@@ -388,6 +411,7 @@ app.get("/api/health",(_,res)=>{
 });
 
 app.get("/api/settings",(_,res)=>res.json(settingsObject()));
+app.get("/api/live",(req,res)=>res.json({now:nowIso(),settings:settingsObject()}));
 
 app.post("/api/auth/register",authLimiter,async(req,res)=>{
   try {
@@ -531,6 +555,8 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
       discount=Math.min(subtotal,Math.max(0,discount));
     }
     const total=Math.max(0,subtotal-discount);
+    const paymentName=String(body.paymentMethod||"");
+    if(cfg.paymentEnabled && cfg.paymentEnabled[paymentName]===false) throw new Error("This payment method is currently unavailable.");
 
     let reserved=0,reservationExpiresAt=null;
     if(methodKey==="instant"){
@@ -712,16 +738,16 @@ app.patch("/api/admin/orders/:number/status",requireAdmin,(req,res)=>{
 });
 
 app.patch("/api/admin/settings",requireAdmin,(req,res)=>{
-  const allowed=["instantStock","supportOnline","supportText","rateCt","rateNct","rateInstant","rateGifting","paypalEmail","wiseDetails","payoneerDetails"];
+  const allowed=["instantStock","supportOnline","supportText","rateCt","rateNct","rateInstant","rateGifting","paypalEmail","wiseDetails","payoneerDetails","paymentGCashEnabled","paymentGoTymeEnabled","paymentPayPalEnabled","paymentWiseEnabled","paymentPayoneerEnabled","shopBannerEnabled","shopBannerText","maintenanceMode"];
   for(const key of allowed){
     if(req.body[key]===undefined)continue;
     const map={
       instantStock:"instant_stock",supportOnline:"support_online",supportText:"support_text",
       rateCt:"rate_ct",rateNct:"rate_nct",rateInstant:"rate_instant",rateGifting:"rate_gifting",
-      paypalEmail:"paypal_email",wiseDetails:"wise_details",payoneerDetails:"payoneer_details"
+      paypalEmail:"paypal_email",wiseDetails:"wise_details",payoneerDetails:"payoneer_details",paymentGCashEnabled:"payment_gcash_enabled",paymentGoTymeEnabled:"payment_gotyme_enabled",paymentPayPalEnabled:"payment_paypal_enabled",paymentWiseEnabled:"payment_wise_enabled",paymentPayoneerEnabled:"payment_payoneer_enabled",shopBannerEnabled:"shop_banner_enabled",shopBannerText:"shop_banner_text",maintenanceMode:"maintenance_mode"
     };
     let value=req.body[key];
-    if(key==="supportOnline")value=Boolean(value)?"true":"false";
+    if(["supportOnline","paymentGCashEnabled","paymentGoTymeEnabled","paymentPayPalEnabled","paymentWiseEnabled","paymentPayoneerEnabled","shopBannerEnabled","maintenanceMode"].includes(key))value=Boolean(value)?"true":"false";
     updateSetting(map[key],value);
   }
   res.json(settingsObject());
@@ -779,6 +805,10 @@ app.get("/api/admin/analytics",requireAdmin,(req,res)=>{
   res.json({totals,daily,methods});
 });
 
+
+app.get("/api/admin/audit",requireAdmin,(req,res)=>res.json({entries:db.prepare("SELECT * FROM admin_audit ORDER BY id DESC LIMIT 200").all()}));
+app.post("/api/admin/backup",requireAdmin,async(req,res)=>{try{const filename=await createBackupNow();audit("manual_backup",filename);res.json({ok:true,filename});}catch{res.status(500).json({error:"Backup failed."});}});
+
 app.get("*",(_,res)=>res.sendFile(path.join(PUBLIC_DIR,"index.html")));
 
 app.use((error,_,res,__)=>{
@@ -788,7 +818,7 @@ app.use((error,_,res,__)=>{
 });
 
 app.listen(PORT,()=>{
-  console.log(`RSR Shop V5 Full Suite running on port ${PORT}`);
+  console.log(`RSR Shop V6 Staging running on port ${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
 });

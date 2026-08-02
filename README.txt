@@ -104,3 +104,18 @@ IMPORTANT SECURITY
 - Back up /var/data regularly.
 - SQLite is suitable for a small shop on one Render instance. For high traffic, migrate to PostgreSQL and object storage.
 - Confirm that your products and payment workflow follow Roblox and payment-provider rules before promotion.
+
+
+V6 STAGING IMPROVEMENTS
+- Installable PWA app, icons and offline fallback
+- Install App button
+- Live support, stock, banner and payment availability refresh
+- Customer order and chat auto-refresh
+- Admin auto-refresh
+- Enable/disable payment methods
+- Announcement banner and maintenance mode
+- Admin audit log
+- Manual and daily SQLite backups
+- Mobile and visual improvements
+
+Deploy to a separate staging service first. Use a separate staging disk. Test everything before replacing V5.

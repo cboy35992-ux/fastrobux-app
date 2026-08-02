@@ -1,8 +1,8 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "5.0.0",
+  "version": "6.0.0",
   "private": true,
-  "description": "Full RSR Shop with SQLite, accounts, private receipts, chat, stock, promo codes, analytics, reviews, email verification and password reset.",
+  "description": "RSR Shop V6 staging upgrade with PWA, live refresh, backups, payment controls and dashboard improvements.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

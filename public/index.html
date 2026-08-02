@@ -10,18 +10,18 @@
   <meta property="og:type" content="website">
   <link rel="canonical" href="/">
   <link rel="stylesheet" href="style.css">
-</head>
+<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#8b5cf6"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"></head>
 <body>
 <header class="navbar">
   <a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>V5 Full Suite</small></span></a>
   <nav><span id="supportStatus" class="support online">● Support Online</span><a href="faq.html">FAQ</a><a id="accountLink" href="auth.html">Login / Register</a><a href="admin.html">Admin</a></nav>
 </header>
-<main class="container">
+<div id="shopBanner" class="shop-banner hidden"></div><main class="container">
   <section class="hero">
     <span class="eyebrow">SECURE ORDER WORKFLOW</span>
     <h1>Buy through a tracked order—not through chat screenshots.</h1>
     <p>Create an account, verify the correct Roblox profile, choose local or international payment, upload a receipt, and track every status update.</p>
-    <div class="hero-actions"><a class="button primary" href="auth.html">Create Account</a><a class="button secondary" href="#shop">View Methods</a></div>
+    <div class="hero-actions"><a class="button primary" href="auth.html">Create Account</a><a class="button secondary" href="#shop">View Methods</a><button id="installApp" class="button secondary hidden">Install App</button></div>
   </section>
 
   <section class="trust-grid">
@@ -99,4 +99,4 @@
 </main>
 <footer><span>© 2026 Reck Shop</span><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="refund.html">Refund Policy</a><span>Not affiliated with Roblox Corporation.</span></footer>
 <script src="script.js"></script>
-</body></html>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script></body></html>
