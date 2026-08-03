@@ -242,3 +242,7 @@ Read AUTH-SETUP-V11.txt before enabling email verification or Google/Facebook lo
 
 V12 PERMANENT COMMERCE
 Read PERMANENT-STORAGE-SETUP-V12.txt. Create Account now changes to the customer dashboard after login, and the separated mobile checkout remains preserved.
+
+
+V12.1 DASHBOARD ORDER HUB
+Logged-in customers start from dashboard.html and choose CT, NCT, Instant or Gifting. Orders open in the focused shop.html step checkout.

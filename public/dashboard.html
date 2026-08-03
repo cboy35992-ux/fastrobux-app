@@ -3,10 +3,49 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Reck Shop">
-</head><body><header class="navbar"><a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>Dashboard</small></span></a><nav><a href="/">Shop</a><a href="dashboard.html">Messages <span id="unreadBadge" class="badge hidden">0</span></a><button id="logout" class="nav-button">Logout</button></nav></header><main class="container"><section class="dashboard-hero"><div><span class="eyebrow">CUSTOMER ACCOUNT</span><h1 id="welcome">Welcome</h1><p id="email" class="muted"></p></div><a class="button primary" href="/">Create New Order</a></section><section class="panel loyalty-card"><div><span class="eyebrow">LOYALTY PROFILE</span><h2 id="loyaltyTier">Bronze Member</h2><p id="loyaltyProgress" class="muted">Complete orders to unlock higher loyalty levels.</p></div><div class="loyalty-stats"><div><span>Total Purchased</span><b id="totalPurchased">₱0</b></div><div><span>Total Robux</span><b id="totalRobux">0</b></div></div></section><section class="stats-grid"><article><span>Total Orders</span><strong id="total">0</strong></article><article><span>Pending</span><strong id="pending">0</strong></article><article><span>Completed</span><strong id="completed">0</strong></article><article><span>Unread Messages</span><strong id="unread">0</strong></article></section><section class="panel"><div class="order-header"><div><h2>Order History</h2><p class="muted">Open an order to view its private receipt, timeline and support chat.</p></div><button id="refresh">Refresh</button></div><div id="orders" class="orders-list"></div><p id="message" class="message"></p></section></main><script src="dashboard.js"></script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script>
+</head><body><header class="navbar"><a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>Dashboard</small></span></a><nav><a href="shop.html">Start Order</a><a href="dashboard.html">Messages <span id="unreadBadge" class="badge hidden">0</span></a><button id="logout" class="nav-button">Logout</button></nav></header><main class="container"><section class="dashboard-hero"><div><span class="eyebrow">CUSTOMER ACCOUNT</span><h1 id="welcome">Welcome</h1><p id="email" class="muted"></p></div><a class="button primary dashboard-start-order" href="shop.html">Start New Order</a></section>
+<section class="panel dashboard-order-hub">
+  <div class="order-header">
+    <div>
+      <span class="eyebrow">START A NEW ORDER</span>
+      <h2>What would you like to order?</h2>
+      <p class="muted">Choose one option. Each method opens its own separated step-by-step checkout.</p>
+    </div>
+    <a class="button secondary" href="tutorial.html#methods">Compare Methods</a>
+  </div>
+  <div class="dashboard-method-grid">
+    <a href="shop.html?method=ct" class="dashboard-method-card">
+      <span class="dashboard-method-icon">🛡️</span>
+      <div><b>Covered Tax</b><p>Receive the full selected Robux amount.</p><small>Game Pass required</small></div>
+      <em>Start →</em>
+    </a>
+    <a href="shop.html?method=nct" class="dashboard-method-card">
+      <span class="dashboard-method-icon">💸</span>
+      <div><b>Not Covered Tax</b><p>Lower payment; Roblox tax is deducted.</p><small>Game Pass required</small></div>
+      <em>Start →</em>
+    </a>
+    <a href="shop.html?method=instant" class="dashboard-method-card">
+      <span class="dashboard-method-icon">⚡</span>
+      <div><b>Robux Instant</b><p>Use available shop stock for faster processing.</p><small>No Game Pass step</small></div>
+      <em>Start →</em>
+    </a>
+    <a href="shop.html?method=gifting" class="dashboard-method-card">
+      <span class="dashboard-method-icon">🎁</span>
+      <div><b>In-Game Gifting</b><p>Order a supported item inside a Roblox game.</p><small>Game and item details required</small></div>
+      <em>Start →</em>
+    </a>
+  </div>
+</section>
+<section class="dashboard-quick-actions">
+  <a class="panel dashboard-action-card" href="#orders"><span>📦</span><div><b>My Orders</b><small>Track current and completed orders</small></div></a>
+  <a class="panel dashboard-action-card" href="#notificationList"><span>🔔</span><div><b>Notifications</b><small>See payment and delivery updates</small></div></a>
+  <a class="panel dashboard-action-card" href="tutorial.html"><span>▶️</span><div><b>Buyer Tutorial</b><small>Learn Game Pass and payment steps</small></div></a>
+  <a class="panel dashboard-action-card" href="trust.html"><span>🛡️</span><div><b>Trust & Support</b><small>Official contact and store policies</small></div></a>
+</section>
+<section class="panel loyalty-card"><div><span class="eyebrow">LOYALTY PROFILE</span><h2 id="loyaltyTier">Bronze Member</h2><p id="loyaltyProgress" class="muted">Complete orders to unlock higher loyalty levels.</p></div><div class="loyalty-stats"><div><span>Total Purchased</span><b id="totalPurchased">₱0</b></div><div><span>Total Robux</span><b id="totalRobux">0</b></div></div></section><section class="stats-grid"><article><span>Total Orders</span><strong id="total">0</strong></article><article><span>Pending</span><strong id="pending">0</strong></article><article><span>Completed</span><strong id="completed">0</strong></article><article><span>Unread Messages</span><strong id="unread">0</strong></article></section><section class="panel" id="orders"><div class="order-header"><div><h2>Order History</h2><p class="muted">Open an order to view its private receipt, timeline and support chat.</p></div><button id="refresh">Refresh</button></div><div id="orders" class="orders-list"></div><p id="message" class="message"></p></section></main><script src="dashboard.js"></script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script>
 <script src="i18n.js" defer></script>
 <script src="install.js" defer></script>
-<nav class="mobile-bottom-nav"><a href="/">Shop</a><a class="active" href="dashboard.html">Orders</a><a href="tutorial.html">Tutorial</a><a href="trust.html">Trust</a></nav><script src="v94-customer.js" defer></script>
+<nav class="mobile-bottom-nav"><a href="shop.html">Start Order</a><a class="active" href="dashboard.html">Orders</a><a href="tutorial.html">Tutorial</a><a href="trust.html">Trust</a></nav><script src="v94-customer.js" defer></script>
 <script src="v10-customer.js" defer></script>
 <script src="network.js" defer></script>
 <script src="connection-status.js" defer></script>

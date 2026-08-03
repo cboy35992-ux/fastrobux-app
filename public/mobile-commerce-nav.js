@@ -9,7 +9,7 @@
     nav.setAttribute("aria-label","Mobile navigation");
     const items=[
       ["index.html","⌂","Home"],
-      ["index.html#checkoutWizard","🛍","Shop"],
+      ["shop.html","🛍","Order"],
       [token?"dashboard.html":"auth.html","📦","Orders"],
       [token?"dashboard.html#notificationList":"auth.html","🔔","Alerts"],
       [token?"dashboard.html":"auth.html","👤","Profile"]

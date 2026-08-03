@@ -77,6 +77,13 @@
     let active = "method";
     const normalOrder = ["method", "account", "gamepass", "payment"];
 
+    const methodDescriptions = {
+      ct: {title:"Covered Tax Order", note:"You receive the full selected Robux amount. Create a Game Pass at the exact higher required price."},
+      nct: {title:"Not Covered Tax Order", note:"Roblox tax is deducted. Create a Game Pass at the exact selected amount."},
+      instant: {title:"Robux Instant Order", note:"Uses available shop stock and skips the Game Pass step."},
+      gifting: {title:"In-Game Gifting Order", note:"Enter the exact game and item. Availability is confirmed before delivery."}
+    };
+
     const selectedMethodKey = () => {
       if (typeof selectedMethod !== "undefined" && selectedMethod) return String(selectedMethod);
       return document.querySelector("[data-method].active")?.dataset.method || "ct";
@@ -159,7 +166,16 @@
       });
 
       const currentIndex = order.indexOf(active);
-      $("checkoutStepTitle").textContent = steps[active].title;
+      const selectedInfo=methodDescriptions[selectedMethodKey()];
+      $("checkoutStepTitle").textContent = active==="method" ? steps[active].title : `${selectedInfo?.title||"Order"} — ${steps[active].title}`;
+      let methodNote=document.getElementById("checkoutMethodNote");
+      if(!methodNote){
+        methodNote=document.createElement("small");
+        methodNote.id="checkoutMethodNote";
+        methodNote.className="checkout-method-note";
+        document.querySelector(".checkout-progress-copy")?.appendChild(methodNote);
+      }
+      methodNote.textContent=selectedInfo?.note||"";
       $("checkoutStepCounter").textContent =
         `Step ${currentIndex + 1} of ${order.length}`;
       $("checkoutProgressBar").style.width =

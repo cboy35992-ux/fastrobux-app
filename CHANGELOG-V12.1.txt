@@ -1,0 +1,14 @@
+RSR SHOP V12.1 — DASHBOARD ORDER HUB
+
+- Customer dashboard is now the main logged-in home.
+- Added a prominent Start New Order action.
+- Added separate Covered Tax, Not Covered Tax, Instant and Gifting choice cards.
+- Each dashboard method opens a dedicated shop page with that method selected.
+- Added shop.html as a focused order-only page.
+- Marketing, reviews and unrelated sections are hidden on the focused order page.
+- Preserved the separated checkout steps:
+  Method → Account & Amount → Game Pass for CT/NCT → Payment & Receipt.
+- Added method-specific instructions in the sticky checkout header.
+- Added dashboard quick actions for Orders, Notifications, Tutorial and Trust.
+- Updated mobile navigation to use the dedicated order page.
+- Account-aware Create Account / My Dashboard behavior remains preserved.
