@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: reck-shop-v11-live
+    runtime: node
+    region: singapore
+    plan: free
+    buildCommand: yarn install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATA_ROOT
+        value: /tmp/rsr-data
+      - key: SESSION_DAYS
+        value: "30"
+      - key: SHORT_SESSION_HOURS
+        value: "24"
+      - key: RESERVATION_MINUTES
+        value: "30"
+      - key: EMAIL_ENABLED
+        value: "false"
+      - key: ALLOW_DEV_EMAIL_LINKS
+        value: "true"
+      - key: REQUIRE_EMAIL_VERIFICATION
+        value: "false"

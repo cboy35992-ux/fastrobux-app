@@ -1,0 +1,31 @@
+RSR SHOP V11.2 — CLEAN RENDER DEPLOYMENT
+
+1. Replace the files in your GitHub repository with this ZIP's contents.
+2. Commit with: Fix homepage delivery and remove stale PWA cache
+3. Render settings:
+   Root Directory: blank
+   Build Command: yarn install
+   Start Command: node server.js
+   Health Check Path: /api/health
+4. Environment:
+   DATA_ROOT=/tmp/rsr-data
+   PUBLIC_BASE_URL=https://YOUR-SERVICE.onrender.com
+   SESSION_DAYS=30
+   SHORT_SESSION_HOURS=24
+   RESERVATION_MINUTES=30
+   EMAIL_ENABLED=false
+   ALLOW_DEV_EMAIL_LINKS=true
+   REQUIRE_EMAIL_VERIFICATION=false
+   ADMIN_KEY=generate a new private value
+   DISCORD_WEBHOOK_URL=generate a new webhook
+5. Deploy using Clear build cache & deploy.
+6. Test:
+   /api/health
+   /api/ping
+   /reset-cache
+   /index.html?v=11.2
+   /
+7. If the browser previously showed ERR_FAILED, open /reset-cache once.
+
+V11.2 explicitly serves / and /index.html, binds to 0.0.0.0, disables the old service worker,
+clears stale PWA caches, logs homepage requests, and preserves the separated order checkout.

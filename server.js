@@ -14,6 +14,19 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 
 const app = express();
+
+const INDEX_FILE = path.join(PUBLIC_DIR, "index.html");
+function sendPublicFile(res, filename, cacheControl="no-cache") {
+  const file = path.join(PUBLIC_DIR, filename);
+  if (!fs.existsSync(file)) return res.status(404).type("text/plain").send("File not found.");
+  res.set({
+    "Cache-Control": cacheControl,
+    "X-RSR-Version": "11.2",
+    "X-Content-Type-Options": "nosniff"
+  });
+  return res.sendFile(file);
+}
+
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || `http://localhost:${PORT}`).replace(/\/+$/, "");
 const ADMIN_KEY = process.env.ADMIN_KEY || "CHANGE_ME";
@@ -355,6 +368,23 @@ app.use(helmet({
 }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+// V11.2: serve the homepage explicitly and bypass stale PWA navigation caches.
+app.get("/", (req,res) => sendPublicFile(res, "index.html", "no-store, no-cache, must-revalidate"));
+app.get("/index.html", (req,res) => sendPublicFile(res, "index.html", "no-store, no-cache, must-revalidate"));
+app.get("/reset-cache", (req,res) => sendPublicFile(res, "reset-cache.html", "no-store"));
+app.get("/reset-cache.html", (req,res) => sendPublicFile(res, "reset-cache.html", "no-store"));
+app.get("/api/ping", (_,res) => res.status(200).type("text/plain").send("pong"));
+app.use((req,res,next)=>{
+  const started=Date.now();
+  res.on("finish",()=>{
+    if(req.path==="/" || req.path==="/index.html" || req.path.startsWith("/api/health")){
+      console.log(`[HTTP] ${req.method} ${req.path} -> ${res.statusCode} (${Date.now()-started}ms)`);
+    }
+  });
+  next();
+});
+
 app.use(express.static(PUBLIC_DIR));
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 50, standardHeaders: true, legacyHeaders: false });
@@ -809,7 +839,7 @@ app.get("/api/health",async(_,res)=>{
   const ok=databaseOk;
   res.status(ok?200:503).json({
     ok,
-    version:"V11 Authentication & Reliability",
+    version:"V11.2 Homepage Render Fix",
     server:"online",
     database:databaseOk?"online":"unavailable",
     email:{enabled:EMAIL_ENABLED,online:emailOk,message:emailMessage},
@@ -1633,7 +1663,11 @@ app.get("/api/admin/operations",requireAdmin,(req,res)=>{
 app.get("/api/admin/audit",requireAdmin,(req,res)=>res.json({entries:db.prepare("SELECT * FROM admin_audit ORDER BY id DESC LIMIT 200").all()}));
 app.post("/api/admin/backup",requireAdmin,async(req,res)=>{try{const filename=await createBackupNow();audit("manual_backup",filename);res.json({ok:true,filename});}catch{res.status(500).json({error:"Backup failed."});}});
 
-app.get("*",(_,res)=>res.sendFile(path.join(PUBLIC_DIR,"index.html")));
+app.get("*",(req,res)=>{
+  if (req.path.startsWith("/api/")) return res.status(404).json({error:"API route not found."});
+  if (path.extname(req.path)) return res.status(404).type("text/plain").send("File not found.");
+  return sendPublicFile(res, "index.html", "no-store, no-cache, must-revalidate");
+});
 
 app.use((error,_,res,__)=>{
   console.error(error);
@@ -1641,8 +1675,20 @@ app.use((error,_,res,__)=>{
   res.status(500).json({error:error.message||"Server error."});
 });
 
-app.listen(PORT,()=>{
-  console.log(`RSR Shop V11.1 Render Storage Hotfix running on port ${PORT}`);
+const HOST = process.env.HOST || "0.0.0.0";
+const server = app.listen(PORT, HOST, ()=>{
+  console.log(`RSR Shop V11.2 Homepage Render Fix listening on http://${HOST}:${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
+  console.log(`Homepage file: ${INDEX_FILE} (${fs.existsSync(INDEX_FILE) ? "found" : "MISSING"})`);
+  console.log(`Public URL: ${PUBLIC_BASE_URL}`);
+});
+server.on("error", error => {
+  console.error("HTTP server failed:", error);
+  process.exit(1);
+});
+process.on("unhandledRejection", error => console.error("Unhandled rejection:", error));
+process.on("uncaughtException", error => {
+  console.error("Uncaught exception:", error);
+  process.exit(1);
 });

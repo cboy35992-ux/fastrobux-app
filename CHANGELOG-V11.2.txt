@@ -1,0 +1,13 @@
+RSR SHOP V11.2 — HOMEPAGE & RENDER RECOVERY
+
+- Explicit GET routes for / and /index.html.
+- Explicit 0.0.0.0 Render host binding.
+- Added /api/ping and stronger /api/health compatibility.
+- Added /reset-cache browser repair page.
+- Removed automatic PWA service-worker registration temporarily.
+- Added automatic stale service-worker and Cache Storage cleanup.
+- Replaced service worker with a self-removing recovery worker.
+- Added no-store homepage headers to prevent broken navigation caches.
+- Added homepage request logging and startup file validation.
+- Added render.yaml and deployment checklist.
+- Preserved V10.2 separated mobile checkout and V11 authentication/reliability features.

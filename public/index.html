@@ -18,7 +18,7 @@
 </head>
 <body>
 <header class="navbar">
-  <a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>V7.2 Mobile & Trust</small></span></a>
+  <a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>V11.2 Secure Shop</small></span></a>
   <nav><span id="supportStatus" class="support online">● Support Online</span><a href="trust.html">Trust Center</a><a href="tutorial.html">How to Buy</a><a href="faq.html">FAQ</a><a id="accountLink" href="auth.html">Login / Register</a><a href="admin.html">Admin</a></nav>
 </header>
 <div id="shopBanner" class="shop-banner hidden"></div><main class="container">
@@ -203,10 +203,12 @@
  </div>
 </div>
 <script src="script.js"></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script>
+<script src="/cache-recovery.js"></script>
 <script src="i18n.js" defer></script>
 <script src="install.js" defer></script>
 <script src="tutorial-media.js" defer></script>
 <script src="v10-client.js" defer></script>
 <script src="checkout-wizard.js" defer></script>
+<script src="network.js" defer></script>
+<script src="connection-status.js" defer></script>
 </body></html>

@@ -6,4 +6,6 @@
 </head><body><header class="navbar"><a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>Private Tracking</small></span></a></header><main class="container narrow"><section class="panel"><h1>Track an Order</h1><div class="two-columns"><label>Order Number<input id="order"></label><label>Private Token<input id="token"></label></div><button id="open" class="button primary full">Open Tracking</button><p id="message" class="message"></p></section><section id="result" class="panel hidden"><div class="order-header"><h2 id="number"></h2><span id="status" class="status-pill"></span></div><div id="details" class="details-grid"></div><div id="timeline" class="timeline"></div><div id="messages" class="chat-box"></div></section></main><script src="status.js"></script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script>
 <script src="i18n.js" defer></script>
 <script src="install.js" defer></script>
+<script src="network.js" defer></script>
+<script src="connection-status.js" defer></script>
 </body></html>

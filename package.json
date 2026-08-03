@@ -1,15 +1,15 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "11.0.0",
+  "version": "11.2.0",
   "private": true,
-  "description": "RSR Shop V11 Authentication & Reliability Edition with email verification, password reset, remembered sessions, optional Google/Facebook login, server wake-up handling, professional loading states, corrected online/offline detection, and preserved separated checkout.",
+  "description": "RSR Shop V11.2 Render homepage recovery build with explicit root delivery, 0.0.0.0 binding, cache/service-worker recovery, health probes and preserved separated checkout.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "check": "node --check server.js"
   },
   "engines": {
-    "node": "20.x"
+    "node": ">=20 <23"
   },
   "dependencies": {
     "better-sqlite3": "^11.7.0",
