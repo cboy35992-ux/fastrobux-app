@@ -21,7 +21,7 @@
   shell.className = "admin-portal-shell";
   shell.innerHTML = `
     <aside class="admin-portal-sidebar">
-      <div class="admin-portal-title"><span class="logo">R</span><div><b>ADMIN PORTAL</b><small>Reck Shop V14</small></div></div>
+      <div class="admin-portal-title"><span class="logo">R</span><div><b>ADMIN PORTAL</b><small>Reck Shop V16</small></div></div>
       <nav id="adminPortalNav"></nav>
       <button id="adminPortalRefresh" class="button secondary full" type="button">Refresh Current Portal</button>
     </aside>

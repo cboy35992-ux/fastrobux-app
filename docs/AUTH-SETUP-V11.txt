@@ -1,0 +1,58 @@
+RSR SHOP V11 AUTHENTICATION SETUP
+
+IMPORTANT
+The code for email verification, password reset, Google login, and Facebook login is included.
+Email and social login cannot send or authenticate until you configure credentials in Render.
+
+1. REQUIRED RENDER VARIABLES
+PUBLIC_BASE_URL=https://your-real-render-domain
+DATA_ROOT=/var/data
+ADMIN_KEY=your-long-random-admin-password
+SESSION_DAYS=30
+SHORT_SESSION_HOURS=12
+
+2. EMAIL VERIFICATION AND FORGOT PASSWORD
+Set:
+EMAIL_ENABLED=true
+REQUIRE_EMAIL_VERIFICATION=true
+ALLOW_DEV_EMAIL_LINKS=false
+SMTP_HOST=your-provider-smtp-host
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-smtp-user
+SMTP_PASS=your-smtp-password
+EMAIL_FROM=Reck Shop <your-verified-sender@example.com>
+
+A verified SMTP/email provider is required. The site now reports a specific email-service error instead of saying the buyer is offline.
+
+3. GOOGLE LOGIN
+Create an OAuth Web Application in Google Cloud.
+Authorized redirect URI:
+https://YOUR-DOMAIN/api/auth/google/callback
+
+Set:
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+4. FACEBOOK LOGIN
+Create a Facebook Login app in Meta for Developers.
+Valid OAuth Redirect URI:
+https://YOUR-DOMAIN/api/auth/facebook/callback
+
+Set:
+FACEBOOK_APP_ID=
+FACEBOOK_APP_SECRET=
+
+Facebook must provide the buyer's confirmed email address.
+
+5. REMEMBER ME
+Selected: token is stored in localStorage and lasts SESSION_DAYS.
+Not selected: token is stored in sessionStorage and expires after SHORT_SESSION_HOURS.
+
+6. SERVER WAKE-UP
+The site checks /api/health, shows a professional connecting screen, and retries while Render wakes up.
+The corrected service worker no longer labels normal server errors as offline.
+
+7. SEPARATED ORDER CHECKOUT
+V10.2 checkout-wizard.js is preserved:
+Method → Roblox Account & Amount → Game Pass (CT/NCT only) → Payment & Receipt.

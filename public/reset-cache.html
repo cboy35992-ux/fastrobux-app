@@ -7,7 +7,7 @@ button,a{display:block;width:100%;box-sizing:border-box;margin-top:12px;padding:
 small{color:#94a3b8}
 </style></head><body><main><h1>Repair Reck Shop</h1>
 <p id="status">Removing the previous website cache and service worker…</p>
-<button id="repair">Repair Again</button><a href="/index.html?v=11.2.1">Open Reck Shop</a>
+<button id="repair">Repair Again</button><a href="/index.html?v=16.0.0">Open Reck Shop</a>
 <small>This does not delete your server accounts or orders.</small></main>
 <script>
 async function repair(){
@@ -17,7 +17,7 @@ async function repair(){
   if("caches" in window){const keys=await caches.keys();await Promise.all(keys.map(k=>caches.delete(k)))}
   localStorage.removeItem("rsr-install-dismissed");
   status.textContent="Repair complete. Opening the fresh homepage…";
-  setTimeout(()=>location.replace("/index.html?v=11.2.1.1-reset-"+Date.now()),900);
+  setTimeout(()=>location.replace("/index.html?v=16.0.0.1-reset-"+Date.now()),900);
  }catch(e){status.textContent="Repair could not finish automatically. Clear this site's browser data, then reload."}
 }
 document.getElementById("repair").onclick=repair;repair();

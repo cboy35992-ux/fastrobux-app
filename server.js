@@ -31,7 +31,7 @@ function sendPublicFile(res, filename, cacheControl="no-cache") {
   if (!fs.existsSync(file)) return res.status(404).type("text/plain").send("File not found.");
   res.set({
     "Cache-Control": cacheControl,
-    "X-RSR-Version": "11.2",
+    "X-RSR-Version": "16.0.0",
     "X-Content-Type-Options": "nosniff"
   });
   res.type(path.extname(file)===".html" ? "html" : path.extname(file).slice(1));
@@ -448,7 +448,7 @@ app.get("/browser-test", (_,res) => {
     "Content-Type":"text/html; charset=utf-8",
     "Cross-Origin-Resource-Policy":"same-origin"
   });
-  res.status(200).send("<!doctype html><html><body style='font-family:system-ui;background:#111827;color:white;padding:30px'><h1>Reck Shop browser test works</h1><p>If you can see this, Chrome can reach the Render service.</p><a style='color:#c4b5fd' href='/index.html?v=11.2.1'>Open shop</a></body></html>");
+  res.status(200).send("<!doctype html><html><body style='font-family:system-ui;background:#111827;color:white;padding:30px'><h1>Reck Shop browser test works</h1><p>If you can see this, Chrome can reach the Render service.</p><a style='color:#c4b5fd' href='/index.html?v=16.0.0'>Open shop</a></body></html>");
 });
 
 // V11.2: serve the homepage explicitly and bypass stale PWA navigation caches.
