@@ -1,0 +1,10 @@
+RSR Shop V16.4 Safe Order Rebuild
+
+- Rebuilt from the working V14.1 project.
+- Preserved the original hidden admin and Clear Orders system.
+- Start Order now opens a focused method-choice-first wizard.
+- CT, NCT, Instant Robux and In-Game Gifting keep separate step paths.
+- Customers choose exactly one payment proof: photo receipt OR reference number.
+- Added immediate local receipt preview before submission.
+- Added safer admin proof-image loading with timeout and direct display.
+- Added iOS/Android fixed navigation and 16px form controls.

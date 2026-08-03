@@ -4,14 +4,10 @@ services:
     runtime: node
     region: singapore
     plan: free
-    buildCommand: npm install
+    buildCommand: yarn install
     startCommand: node server.js
     healthCheckPath: /api/health
     envVars:
-      - key: ADMIN_PORTAL_PATH
-        value: reck-ops-x7p4-private
-      - key: ADMIN_KEY
-        sync: false
       - key: DATA_ROOT
         value: /tmp/rsr-data
       - key: SESSION_DAYS

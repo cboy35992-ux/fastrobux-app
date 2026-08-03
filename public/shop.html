@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RSR Shop">
 </head>
-<body class="dedicated-shop-page">
+<body class="dedicated-shop-page order-only-page">
 <header class="navbar">
   <a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>Secure Order Center</small></span></a>
   <nav><span id="supportStatus" class="support online">● Support Online</span><a href="trust.html">Trust Center</a><a href="tutorial.html">How to Buy</a><a href="faq.html">FAQ</a><a id="accountLink" data-account-link href="auth.html">My Account</a><a href="support.html">Support</a></nav>
@@ -179,11 +179,20 @@
       <div><strong>✓ Keep your receipt</strong><span>Upload a clear PNG or JPG image.</span></div>
       <div><strong>✓ Never share passwords</strong><span>Reck Shop never asks for your Roblox password.</span></div>
     </div>
-    <div class="two-columns">
-      <label>Sender Name<input id="senderName" placeholder="Name used for payment"></label>
-      <label>Reference Number<input id="referenceNumber" placeholder="Payment reference"></label>
+    <label>Sender Name<input id="senderName" placeholder="Name used for payment" autocomplete="name"></label>
+    <fieldset class="evidence-choice" id="evidenceChoice">
+      <legend>Choose one payment proof</legend>
+      <label class="evidence-option active"><input type="radio" name="evidenceType" value="photo" checked><span><b>📷 Photo receipt</b><small>Upload a clear GCash, GoTyme, PayPal, Wise or Payoneer receipt.</small></span></label>
+      <label class="evidence-option"><input type="radio" name="evidenceType" value="reference"><span><b>🔢 Reference number</b><small>Enter the complete transaction/reference number instead of a photo.</small></span></label>
+    </fieldset>
+    <div id="photoEvidence">
+      <label>Payment Receipt<input id="receipt" type="file" accept="image/png,image/jpeg,image/webp"></label>
+      <div id="receiptPreview" class="receipt-preview hidden"><img id="receiptPreviewImage" alt="Selected payment receipt preview"><button id="removeReceipt" type="button" class="button secondary">Remove photo</button></div>
     </div>
-    <label>Payment Receipt<input id="receipt" type="file" accept="image/png,image/jpeg"></label>
+    <div id="referenceEvidence" class="hidden">
+      <label>Transaction / Reference Number<input id="referenceNumber" inputmode="text" autocomplete="off" placeholder="Example: 1234 5678 9012"></label>
+      <small class="muted">Use the complete reference shown by your payment platform.</small>
+    </div>
     <label class="confirm"><input id="confirm" type="checkbox"> I confirm the Roblox account and payment information are correct.</label>
     <button id="submitOrder" class="button primary full">Submit Order</button>
     <p id="submitMessage" class="message"></p>

@@ -31,7 +31,7 @@ function sendPublicFile(res, filename, cacheControl="no-cache") {
   if (!fs.existsSync(file)) return res.status(404).type("text/plain").send("File not found.");
   res.set({
     "Cache-Control": cacheControl,
-    "X-RSR-Version": "16.0.0",
+    "X-RSR-Version": "11.2",
     "X-Content-Type-Options": "nosniff"
   });
   res.type(path.extname(file)===".html" ? "html" : path.extname(file).slice(1));
@@ -352,7 +352,7 @@ db.exec("CREATE INDEX IF NOT EXISTS idx_oauth_states_expiry ON oauth_states(expi
 // V10: operational review and fraud-protection fields.
 const v10OrderColumns = new Set(db.prepare("PRAGMA table_info(orders)").all().map(c=>c.name));
 for (const [column,type] of [
-  ["receipt_hash","TEXT"],["payment_evidence_type","TEXT NOT NULL DEFAULT 'photo'"],["risk_flags","TEXT"],["admin_verified_amount","REAL"],
+  ["receipt_hash","TEXT"],["risk_flags","TEXT"],["admin_verified_amount","REAL"],
   ["admin_verified_reference","TEXT"],["receipt_review_status","TEXT"],
   ["delivery_started_at","TEXT"],["completed_at","TEXT"]
 ]) {
@@ -448,7 +448,7 @@ app.get("/browser-test", (_,res) => {
     "Content-Type":"text/html; charset=utf-8",
     "Cross-Origin-Resource-Policy":"same-origin"
   });
-  res.status(200).send("<!doctype html><html><body style='font-family:system-ui;background:#111827;color:white;padding:30px'><h1>Reck Shop browser test works</h1><p>If you can see this, Chrome can reach the Render service.</p><a style='color:#c4b5fd' href='/index.html?v=16.0.0'>Open shop</a></body></html>");
+  res.status(200).send("<!doctype html><html><body style='font-family:system-ui;background:#111827;color:white;padding:30px'><h1>Reck Shop browser test works</h1><p>If you can see this, Chrome can reach the Render service.</p><a style='color:#c4b5fd' href='/index.html?v=11.2.1'>Open shop</a></body></html>");
 });
 
 // V11.2: serve the homepage explicitly and bypass stale PWA navigation caches.
@@ -489,8 +489,7 @@ const orderLimiter = rateLimit({ windowMs: 10 * 60 * 1000, limit: 30, standardHe
 const storage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, UPLOADS_DIR),
   filename: (_, file, cb) => {
-    const extensions = {"image/png":".png","image/jpeg":".jpg","image/webp":".webp","image/gif":".gif"};
-    const ext = extensions[file.mimetype] || ".img";
+    const ext = file.mimetype === "image/png" ? ".png" : ".jpg";
     cb(null, `${Date.now()}-${crypto.randomBytes(12).toString("hex")}${ext}`);
   }
 });
@@ -498,16 +497,16 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_, file, cb) => {
-    if (["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.mimetype)) return cb(null, true);
-    cb(new Error("Receipt must be PNG, JPG, WEBP or GIF."));
+    if (["image/png", "image/jpeg"].includes(file.mimetype)) return cb(null, true);
+    cb(new Error("Receipt must be PNG or JPG."));
   }
 });
 const proofUpload = multer({
   storage,
   limits: { fileSize: 8 * 1024 * 1024 },
   fileFilter: (_, file, cb) => {
-    if (["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.mimetype)) return cb(null, true);
-    cb(new Error("Proof image must be PNG, JPG, WEBP or GIF."));
+    if (["image/png", "image/jpeg"].includes(file.mimetype)) return cb(null, true);
+    cb(new Error("Proof image must be PNG or JPG."));
   }
 });
 
@@ -712,8 +711,6 @@ function serializeOrder(row, includePrivate=false) {
     totalPayment: row.total_payment,
     promoCode: row.promo_code,
     paymentMethod: row.payment_method,
-    paymentEvidenceType: row.payment_evidence_type || (row.receipt_filename ? "photo" : "reference"),
-    hasReceiptImage: Boolean(row.receipt_filename),
     robloxUserId: row.roblox_user_id,
     username: row.username,
     displayName: row.display_name,
@@ -734,7 +731,8 @@ function serializeOrder(row, includePrivate=false) {
     adminVerifiedAmount: row.admin_verified_amount,
     adminVerifiedReference: row.admin_verified_reference,
     deliveryStartedAt: row.delivery_started_at,
-    completedAt: row.completed_at
+    completedAt: row.completed_at,
+    hasReceipt: Boolean(row.receipt_filename)
   };
   if (includePrivate) {
     result.senderName = row.sender_name;
@@ -1296,13 +1294,11 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
   try{
     releaseExpiredReservations();
     const body=req.body;
-    const paymentEvidenceType=String(body.paymentEvidenceType||"photo").trim().toLowerCase();
-    if(!["photo","reference"].includes(paymentEvidenceType)) throw new Error("Choose photo receipt or payment reference.");
+    const evidenceType=String(body.evidenceType||"photo").toLowerCase();
     const paymentReference=String(body.referenceNumber||"").trim();
-    if(paymentEvidenceType==="photo"&&!req.file) throw new Error("Upload a clear payment receipt image.");
-    if(paymentEvidenceType==="reference"&&paymentReference.length<5) throw new Error("Enter a valid payment reference number.");
-    if(paymentEvidenceType==="photo") body.referenceNumber="";
-    if(paymentEvidenceType==="reference"&&req.file){ try{fs.unlinkSync(req.file.path)}catch{} req.file=null; }
+    if(!["photo","reference"].includes(evidenceType))throw new Error("Choose a valid payment proof type.");
+    if(evidenceType==="photo"&&!req.file)throw new Error("Upload your payment receipt photo.");
+    if(evidenceType==="reference"&&paymentReference.length<5)throw new Error("Enter a valid payment reference number.");
     const cfg=settingsObject();
     const methodKey=String(body.methodKey||"");
     if(!["ct","nct","instant","gifting"].includes(methodKey))throw new Error("Invalid order method.");
@@ -1367,10 +1363,8 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
       const duplicateReceipt = db.prepare("SELECT order_number FROM orders WHERE receipt_hash=? LIMIT 1").get(currentReceiptHash);
       if (duplicateReceipt) riskFlags = appendRiskFlag(riskFlags, `duplicate-receipt:${duplicateReceipt.order_number}`);
     }
-    if(paymentReference){
-      const duplicateReference = db.prepare("SELECT order_number FROM orders WHERE reference_number=? LIMIT 1").get(paymentReference);
-      if (duplicateReference) riskFlags = appendRiskFlag(riskFlags, `duplicate-reference:${duplicateReference.order_number}`);
-    }
+    const duplicateReference = db.prepare("SELECT order_number FROM orders WHERE reference_number=? LIMIT 1").get(String(body.referenceNumber||"").trim());
+    if (duplicateReference) riskFlags = appendRiskFlag(riskFlags, `duplicate-reference:${duplicateReference.order_number}`);
 
     const id=crypto.randomUUID(),number=makeOrderNumber(),privateToken=crypto.randomBytes(24).toString("hex");
     const methodNames={ct:"Covered Tax",nct:"Not Covered Tax",instant:"Robux Instant",gifting:"In-Game Gifting"};
@@ -1384,8 +1378,8 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
           required_pass_price,subtotal,discount,total_payment,promo_code,payment_method,sender_name,
           reference_number,roblox_user_id,username,display_name,avatar_url,game_name,item_name,
           gamepass_id,gamepass_url,gamepass_name,gamepass_price,gamepass_verified_at,
-          receipt_filename,receipt_hash,payment_evidence_type,risk_flags,receipt_review_status,reserved_stock,reservation_expires_at,created_at,updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+          receipt_filename,receipt_hash,risk_flags,receipt_review_status,reserved_stock,reservation_expires_at,created_at,updated_at
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `).run(
         id,number,hashToken(privateToken),req.customer.id,"Pending Payment Review",methodNames[methodKey],
         methodKey==="ct"?"Covered Tax":methodKey==="nct"?"Not Covered Tax":"N/A",
@@ -1394,7 +1388,7 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
         String(body.robloxUserId||""),String(body.username||""),String(body.robloxDisplayName||body.username||""),
         String(body.robloxAvatarUrl||""),String(body.gameName||""),String(body.itemName||""),
         verifiedGamePass?.id||null,verifiedGamePass?.url||null,verifiedGamePass?.name||null,verifiedGamePass?.actualPrice||null,verifiedGamePass?created:null,
-        req.file?.filename||"",currentReceiptHash,paymentEvidenceType,riskFlags,"Not reviewed",reserved,reservationExpiresAt,created,created
+        req.file?.filename||"",currentReceiptHash,riskFlags,"Not reviewed",reserved,reservationExpiresAt,created,created
       );
       db.prepare("INSERT INTO order_history(order_id,status,created_at) VALUES (?,?,?)").run(id,"Pending Payment Review",created);
       db.prepare("INSERT INTO messages(order_id,sender_type,text,customer_read,admin_read,created_at) VALUES (?,?,?,?,?,?)")
@@ -1479,8 +1473,6 @@ app.get("/api/order-message-images/:messageId",requireCustomer,(req,res)=>{
   const file=path.join(UPLOADS_DIR,message.image_filename);
   if(!fs.existsSync(file))return res.status(404).json({error:"Proof image file is unavailable."});
   res.set("Cache-Control","private, max-age=300");
-  res.set("X-Content-Type-Options","nosniff");
-  res.set("Content-Disposition",`inline; filename="${path.basename(file)}"`);
   res.type(message.image_mime||"image/jpeg");
   res.sendFile(file);
 });
@@ -1489,8 +1481,6 @@ app.get("/api/admin/order-message-images/:messageId",requireAdmin,(req,res)=>{
   if(!message||!message.image_filename)return res.status(404).json({error:"Proof image not found."});
   const file=path.join(UPLOADS_DIR,message.image_filename);
   if(!fs.existsSync(file))return res.status(404).json({error:"Proof image file is unavailable."});
-  res.set("X-Content-Type-Options","nosniff");
-  res.set("Content-Disposition",`inline; filename="${path.basename(file)}"`);
   res.type(message.image_mime||"image/jpeg");
   res.sendFile(file);
 });
@@ -1498,13 +1488,9 @@ app.get("/api/admin/order-message-images/:messageId",requireAdmin,(req,res)=>{
 app.get("/api/orders/:number/receipt",requireCustomer,(req,res)=>{
   const order=orderForCustomer(req.params.number,req.customer.id);
   if(!order)return res.status(404).json({error:"Order not found."});
-  if(!order.receipt_filename)return res.status(404).json({error:"This order uses a payment reference instead of a photo receipt."});
+  if(!order.receipt_filename)return res.status(404).json({error:"This order uses a payment reference instead of a receipt photo."});
   const file=path.join(UPLOADS_DIR,order.receipt_filename);
-  if(!fs.existsSync(file))return res.status(404).json({error:"Receipt image file is unavailable."});
-  res.set("Cache-Control","private, no-store, max-age=0");
-  res.set("X-Content-Type-Options","nosniff");
-  res.set("Content-Disposition",`inline; filename="${path.basename(file)}"`);
-  res.type(path.extname(file));
+  if(!fs.existsSync(file))return res.status(404).json({error:"Receipt file is unavailable."});
   res.sendFile(file);
 });
 
@@ -1535,12 +1521,10 @@ app.get("/api/reviews",(_,res)=>{
 app.get("/api/admin/orders",requireAdmin,(req,res)=>{
   releaseExpiredReservations();
   const status=String(req.query.status||"");
-  const method=String(req.query.method||"").trim();
   const search=String(req.query.search||"").trim();
   let sql="SELECT * FROM orders WHERE 1=1",params=[];
   if(status){sql+=" AND status=?";params.push(status);}
-  if(method){sql+=" AND method=?";params.push(method);}
-  if(search){sql+=" AND (order_number LIKE ? OR username LIKE ? OR display_name LIKE ? OR reference_number LIKE ? OR game_name LIKE ? OR item_name LIKE ?)";const q=`%${search}%`;params.push(q,q,q,q,q,q);}
+  if(search){sql+=" AND (order_number LIKE ? OR username LIKE ? OR reference_number LIKE ?)";const q=`%${search}%`;params.push(q,q,q);}
   sql+=" ORDER BY created_at DESC LIMIT 500";
   res.json({orders:db.prepare(sql).all(...params).map(row=>serializeOrder(row,true)),settings:settingsObject()});
 });
@@ -1559,13 +1543,9 @@ app.get("/api/admin/orders/:number",requireAdmin,(req,res)=>{
 app.get("/api/admin/orders/:number/receipt",requireAdmin,(req,res)=>{
   const order=db.prepare("SELECT * FROM orders WHERE order_number=?").get(req.params.number);
   if(!order)return res.status(404).json({error:"Order not found."});
-  if(!order.receipt_filename)return res.status(404).json({error:"This order uses a payment reference instead of a photo receipt."});
+  if(!order.receipt_filename)return res.status(404).json({error:"This order uses a payment reference instead of a receipt photo."});
   const file=path.join(UPLOADS_DIR,order.receipt_filename);
-  if(!fs.existsSync(file))return res.status(404).json({error:"Receipt image file is unavailable."});
-  res.set("Cache-Control","private, no-store, max-age=0");
-  res.set("X-Content-Type-Options","nosniff");
-  res.set("Content-Disposition",`inline; filename="${path.basename(file)}"`);
-  res.type(path.extname(file));
+  if(!fs.existsSync(file))return res.status(404).json({error:"Receipt file is unavailable."});
   res.sendFile(file);
 });
 
@@ -1586,8 +1566,7 @@ app.post("/api/admin/orders/:number/messages",requireAdmin,proofUpload.single("i
   notifyUser(order.customer_id,order.id,"support",req.file?"Delivery proof received":"New admin message",
     req.file?"Reck Shop sent an image proof for your order.":defaultText);
   audit(req.file?"order_proof_sent":"admin_order_message_sent",`${order.order_number}: message ${result.lastInsertRowid}`);
-  const savedMessage=db.prepare("SELECT * FROM messages WHERE id=?").get(result.lastInsertRowid);
-  res.json({ok:true,messageId:result.lastInsertRowid,message:serializeMessage(savedMessage)});
+  res.json({ok:true,messageId:result.lastInsertRowid});
 });
 
 app.patch("/api/admin/orders/:number/status",requireAdmin,(req,res)=>{

@@ -38,6 +38,7 @@ $("submitOrder").onclick=async()=>{
   const fail=t=>{msg.className="message error";msg.textContent=t};
   if(!token){msg.className="message error";msg.innerHTML='Please <a href="auth.html">log in or register</a> before ordering.';return}
   const c=calc(),receipt=$("receipt").files[0];
+  const evidenceType=document.querySelector('input[name="evidenceType"]:checked')?.value||"photo";
   if(!selectedRoblox)return fail("Search and select the buyer's Roblox account.");
   if(c.amount<=0)return fail("Enter a valid amount.");
   if(["ct","nct"].includes(selectedMethod)){
@@ -48,12 +49,12 @@ $("submitOrder").onclick=async()=>{
   if(selectedMethod==="instant"&&c.amount>cfg.instantStock)return fail("Not enough Instant stock.");
   if(selectedMethod==="gifting"&&(!$("gameName").value.trim()||!$("itemName").value.trim()))return fail("Enter the game and item name.");
   if(!$("senderName").value.trim())return fail("Enter the sender name.");
-  if($("referenceNumber").value.trim().length<5)return fail("Enter a valid payment reference.");
-  if(!receipt)return fail("Upload the receipt.");
+  if(evidenceType==="photo"&&!receipt)return fail("Upload a clear payment receipt photo.");
+  if(evidenceType==="reference"&&$("referenceNumber").value.trim().length<5)return fail("Enter the complete payment reference number.");
   if(!$("confirm").checked)return fail("Confirm the order information.");
   const form=new FormData();
-  const fields={methodKey:selectedMethod,amount:c.amount,promoCode:appliedPromo,paymentMethod:paymentMethod(),senderName:$("senderName").value.trim(),referenceNumber:$("referenceNumber").value.trim(),robloxUserId:selectedRoblox.userId,username:selectedRoblox.username,robloxUsername:selectedRoblox.username,robloxDisplayName:selectedRoblox.displayName,robloxAvatarUrl:selectedRoblox.avatarUrl,gameName:$("gameName").value.trim(),itemName:$("itemName").value.trim(),gamePassLink:["ct","nct"].includes(selectedMethod)?$("gamepassLink").value.trim():"",gamePassId:verifiedGamePassData?.gamePass?.id||""};
-  Object.entries(fields).forEach(([k,v])=>form.append(k,v));form.append("receipt",receipt);
+  const fields={methodKey:selectedMethod,amount:c.amount,promoCode:appliedPromo,paymentMethod:paymentMethod(),senderName:$("senderName").value.trim(),evidenceType,referenceNumber:evidenceType==="reference"?$("referenceNumber").value.trim():"",robloxUserId:selectedRoblox.userId,username:selectedRoblox.username,robloxUsername:selectedRoblox.username,robloxDisplayName:selectedRoblox.displayName,robloxAvatarUrl:selectedRoblox.avatarUrl,gameName:$("gameName").value.trim(),itemName:$("itemName").value.trim(),gamePassLink:["ct","nct"].includes(selectedMethod)?$("gamepassLink").value.trim():"",gamePassId:verifiedGamePassData?.gamePass?.id||""};
+  Object.entries(fields).forEach(([k,v])=>form.append(k,v));if(receipt&&evidenceType==="photo")form.append("receipt",receipt);
   const b=$("submitOrder");b.disabled=true;b.textContent="Submitting…";
   try{
     const d=await api("/api/orders",{method:"POST",body:form});
@@ -268,4 +269,26 @@ setTimeout(updateGamepassRequirements, 0);
       if(btn){ btn.classList.remove('hidden'); btn.addEventListener('click', openIosHelp); }
     });
   }
+})();
+
+
+// V16.4 safe payment-evidence selector and immediate local preview.
+(function(){
+  const radios=[...document.querySelectorAll('input[name="evidenceType"]')];
+  const photo=document.getElementById('photoEvidence'),ref=document.getElementById('referenceEvidence');
+  const input=document.getElementById('receipt'),preview=document.getElementById('receiptPreview'),img=document.getElementById('receiptPreviewImage');
+  let previewUrl='';
+  function renderEvidence(){
+    const type=document.querySelector('input[name="evidenceType"]:checked')?.value||'photo';
+    photo?.classList.toggle('hidden',type!=='photo'); ref?.classList.toggle('hidden',type!=='reference');
+    document.querySelectorAll('.evidence-option').forEach(x=>x.classList.toggle('active',x.querySelector('input')?.checked));
+  }
+  radios.forEach(r=>r.addEventListener('change',renderEvidence)); renderEvidence();
+  input?.addEventListener('change',()=>{
+    if(previewUrl)URL.revokeObjectURL(previewUrl); previewUrl='';
+    const file=input.files?.[0]; if(!file){preview?.classList.add('hidden');return;}
+    if(!/^image\/(png|jpeg|webp)$/i.test(file.type)){input.value='';alert('Use a PNG, JPG, JPEG or WEBP image.');return;}
+    previewUrl=URL.createObjectURL(file);img.src=previewUrl;preview.classList.remove('hidden');
+  });
+  document.getElementById('removeReceipt')?.addEventListener('click',()=>{if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl='';input.value='';img.removeAttribute('src');preview.classList.add('hidden');});
 })();

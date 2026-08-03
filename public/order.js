@@ -49,7 +49,7 @@ function bindProofs(container){
   container.querySelectorAll("[data-proof-image]").forEach(img=>{
     const id=Number(img.dataset.proofImage);
     const link=container.querySelector(`[data-proof-link="${id}"]`);
-    if(link&&!img.getAttribute("src"))loadProtectedProof(id,img,link);
+    if(link&&!img.src)loadProtectedProof(id,img,link);
   });
 }
 function renderMessages(messages){
@@ -69,9 +69,9 @@ function appendMessages(messages){
   if(messages?.length)box.scrollTop=box.scrollHeight;
 }
 async function realtimeTick(){
-  if(document.hidden||!number)return;
+  if(document.hidden||!orderNumber)return;
   try{
-    const response=await fetch(`/api/orders/${encodeURIComponent(number)}/realtime?after=${lastMessageId}`,{
+    const response=await fetch(`/api/orders/${encodeURIComponent(orderNumber)}/realtime?after=${lastMessageId}`,{
       headers:{Authorization:`Bearer ${token}`},cache:"no-store"
     });
     if(response.status===401){location.href=`auth.html?returnTo=${encodeURIComponent(location.pathname+location.search)}`;return}
@@ -106,7 +106,7 @@ async function confirmDelivery(){
   const button=$("confirmDeliveryButton");
   button.disabled=true;button.textContent="Confirming…";
   try{
-    const response=await fetch(`/api/orders/${encodeURIComponent(number)}/confirm-delivery`,{
+    const response=await fetch(`/api/orders/${encodeURIComponent(orderNumber)}/confirm-delivery`,{
       method:"POST",headers:{Authorization:`Bearer ${token}`}
     });
     const data=await response.json().catch(()=>({}));

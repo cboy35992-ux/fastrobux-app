@@ -12,7 +12,7 @@
       if (!sessionStorage.getItem(RECOVERY_KEY)) {
         sessionStorage.setItem(RECOVERY_KEY, "1");
         const url = new URL(location.href);
-        url.searchParams.set("v", "16.0.0");
+        url.searchParams.set("v", "11.2");
         location.replace(url.toString());
       }
     } catch (error) {
