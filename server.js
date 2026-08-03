@@ -955,7 +955,7 @@ app.get("/api/health",async(_,res)=>{
   const ok=databaseOk;
   res.status(ok?200:503).json({
     ok,
-    version:"V13.6 Order Success & Proof Edition",
+    version:"V13.7 Realtime Proof & Chat Edition",
     server:"online",
     database:databaseOk?"online":"unavailable",
     email:{enabled:EMAIL_ENABLED,online:emailOk,message:emailMessage},
@@ -1420,6 +1420,23 @@ app.get("/api/customer/unread",requireCustomer,(req,res)=>{
 });
 
 
+
+app.post("/api/orders/:number/confirm-delivery",requireCustomer,(req,res)=>{
+  const order=orderForCustomer(req.params.number,req.customer.id);
+  if(!order)return res.status(404).json({error:"Order not found."});
+  if(!["Ready for Delivery","Completed"].includes(order.status))
+    return res.status(400).json({error:"This order is not ready for delivery confirmation yet."});
+  if(order.status!=="Completed"){
+    const changed=nowIso();
+    db.prepare("UPDATE orders SET status='Completed',completed_at=?,updated_at=? WHERE id=?").run(changed,changed,order.id);
+    db.prepare("INSERT INTO messages(order_id,sender_type,text,customer_read,admin_read,created_at) VALUES (?,?,?,?,?,?)")
+      .run(order.id,"system","Customer confirmed that the Robux delivery was received.",1,0,changed);
+    notifyUser(order.customer_id,order.id,"status","Delivery confirmed","Your order is now completed.");
+    audit("customer_confirmed_delivery",order.order_number);
+  }
+  res.json({ok:true,status:"Completed"});
+});
+
 app.get("/api/order-message-images/:messageId",requireCustomer,(req,res)=>{
   const message=db.prepare(`SELECT m.*,o.customer_id FROM messages m JOIN orders o ON o.id=m.order_id WHERE m.id=?`).get(Number(req.params.messageId));
   if(!message||message.customer_id!==req.customer.id||!message.image_filename)return res.status(404).json({error:"Proof image not found."});
@@ -1737,6 +1754,32 @@ app.post("/api/events",(req,res)=>{
     .run(String(req.body.sessionKey||"").slice(0,100),eventType,String(req.body.path||"").slice(0,200),String(req.body.language||"").slice(0,20),nowIso());
   res.json({ok:true});
 });
+
+app.get("/api/orders/:number/realtime",requireCustomer,(req,res)=>{
+  const order=orderForCustomer(req.params.number,req.customer.id);
+  if(!order)return res.status(404).json({error:"Order not found."});
+  const lastMessageId=Math.max(0,Number(req.query.after||0));
+  const messages=db.prepare(`SELECT id,sender_type AS sender,text,image_filename,image_caption,created_at
+    FROM messages WHERE order_id=? AND id>? ORDER BY id`).all(order.id,lastMessageId).map(row=>({
+      id:row.id,sender:row.sender,text:row.text,
+      imageUrl:row.image_filename?`/api/order-message-images/${row.id}`:null,
+      imageCaption:row.image_caption||"",created_at:row.created_at
+    }));
+  res.json({status:order.status,updatedAt:order.updated_at,messages});
+});
+app.get("/api/admin/orders/:number/realtime",requireAdmin,(req,res)=>{
+  const order=db.prepare("SELECT * FROM orders WHERE order_number=?").get(req.params.number);
+  if(!order)return res.status(404).json({error:"Order not found."});
+  const lastMessageId=Math.max(0,Number(req.query.after||0));
+  const messages=db.prepare(`SELECT id,sender_type AS sender,text,image_filename,image_caption,created_at
+    FROM messages WHERE order_id=? AND id>? ORDER BY id`).all(order.id,lastMessageId).map(row=>({
+      id:row.id,sender:row.sender,text:row.text,
+      imageUrl:row.image_filename?`/api/admin/order-message-images/${row.id}`:null,
+      imageCaption:row.image_caption||"",created_at:row.created_at
+    }));
+  res.json({status:order.status,updatedAt:order.updated_at,messages});
+});
+
 app.get("/api/customer/notifications",requireCustomer,(req,res)=>{
   const rows=db.prepare("SELECT id,type,title,message,read_at,created_at,order_id FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 100").all(req.customer.id);
   res.json({notifications:rows,unread:rows.filter(x=>!x.read_at).length});
@@ -2019,7 +2062,7 @@ app.use((error,_,res,__)=>{
 
 const HOST = process.env.HOST || "0.0.0.0";
 const server = app.listen(PORT, HOST, ()=>{
-  console.log(`RSR Shop V13.6 Order Success & Proof Edition listening on http://${HOST}:${PORT}`);
+  console.log(`RSR Shop V13.7 Realtime Proof & Chat Edition listening on http://${HOST}:${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
   console.log(`Homepage file: ${INDEX_FILE} (${fs.existsSync(INDEX_FILE) ? "found" : "MISSING"})`);

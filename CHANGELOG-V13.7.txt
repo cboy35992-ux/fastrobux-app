@@ -1,0 +1,27 @@
+RSR SHOP V13.7 — REALTIME PROOF & CHAT
+
+FIXED
+- Customer proof images no longer use a normal <img src> request.
+- Images are fetched with the customer's Authorization bearer token.
+- Admin proof images are fetched with the x-admin-key header.
+- Protected images are converted into browser blob URLs before display.
+- Fixes: {"error":"Please log in again."}
+
+REALTIME
+- Customer order messages poll automatically every 3 seconds.
+- Admin selected-order messages poll automatically every 3 seconds.
+- New proof images and chat messages appear without a manual refresh.
+- Order status changes update automatically.
+- Polling pauses while the tab is hidden and resumes when visible.
+
+DELIVERY CONFIRMATION
+- Customer sees Confirm Robux Received when status is Ready for Delivery.
+- Confirmation changes the order to Completed.
+- A system message and audit entry are saved.
+- Admin receives the updated status through realtime polling.
+
+PRESERVED
+- Admin proof upload.
+- Order-submitted success popup.
+- Separated mobile checkout.
+- Authentication, support, profile, translations, storage tools and analytics.

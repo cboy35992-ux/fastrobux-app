@@ -1,8 +1,8 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "13.6.0",
+  "version": "13.7.0",
   "private": true,
-  "description": "RSR Shop V13.6 with professional order-submitted confirmation, estimated review guidance, admin image proof uploads in private order chat, customer proof viewing, and preserved separated checkout.",
+  "description": "RSR Shop V13.7 Realtime Proof & Chat Edition with authenticated blob image loading, automatic polling for customer/admin messages and order status, delivery confirmation, proof notifications, and preserved separated checkout.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

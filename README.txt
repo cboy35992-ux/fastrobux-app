@@ -254,3 +254,7 @@ New pages: support.html and profile.html. Admin can manage announcements and sup
 
 V13.6 ORDER SUCCESS & PROOF
 After successful submission, customers see a confirmation popup. Admin can send private PNG/JPG delivery proof through the order chat.
+
+
+V13.7 REALTIME PROOF & CHAT
+Protected proof images now load through authenticated fetch requests. Order chat and status poll every 3 seconds. Customers can confirm delivery.
