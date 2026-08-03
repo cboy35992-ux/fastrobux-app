@@ -1298,7 +1298,7 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
     const paymentReference=String(body.referenceNumber||"").trim();
     if(!["photo","reference"].includes(evidenceType))throw new Error("Choose a valid payment proof type.");
     if(evidenceType==="photo"&&!req.file)throw new Error("Upload your payment receipt photo.");
-    if(evidenceType==="reference"&&paymentReference.length<5)throw new Error("Enter a valid payment reference number.");
+    if(evidenceType==="reference"&&paymentReference.length<5)throw new Error("Enter the complete payment reference number. Incorrect or unverifiable references may be declined.");
     const cfg=settingsObject();
     const methodKey=String(body.methodKey||"");
     if(!["ct","nct","instant","gifting"].includes(methodKey))throw new Error("Invalid order method.");
@@ -1363,7 +1363,9 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
       const duplicateReceipt = db.prepare("SELECT order_number FROM orders WHERE receipt_hash=? LIMIT 1").get(currentReceiptHash);
       if (duplicateReceipt) riskFlags = appendRiskFlag(riskFlags, `duplicate-receipt:${duplicateReceipt.order_number}`);
     }
-    const duplicateReference = db.prepare("SELECT order_number FROM orders WHERE reference_number=? LIMIT 1").get(String(body.referenceNumber||"").trim());
+    const duplicateReference = paymentReference
+      ? db.prepare("SELECT order_number FROM orders WHERE reference_number=? LIMIT 1").get(paymentReference)
+      : null;
     if (duplicateReference) riskFlags = appendRiskFlag(riskFlags, `duplicate-reference:${duplicateReference.order_number}`);
 
     const id=crypto.randomUUID(),number=makeOrderNumber(),privateToken=crypto.randomBytes(24).toString("hex");

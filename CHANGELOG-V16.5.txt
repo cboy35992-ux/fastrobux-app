@@ -1,0 +1,10 @@
+RSR Shop V16.5 — Admin Restore & Single Payment Proof Fix
+
+- Restored the original working V14.1 admin portal and admin JavaScript.
+- Removed the extra admin proof script that interfered with the admin workspace.
+- Customer chooses exactly one proof: receipt photo or transaction reference.
+- Reference-only orders can proceed without a receipt image.
+- Added clear warning for incorrect, incomplete, reused, fake, or unverifiable references.
+- Admin order details clearly show Receipt Photo or Reference Number.
+- Receipt opening validates the server response before opening.
+- Empty reference values are no longer incorrectly marked as duplicates.
