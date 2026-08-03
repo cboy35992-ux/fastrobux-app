@@ -1,0 +1,23 @@
+RSR SHOP V14.1 — HIDDEN ADMIN & CLEAR ORDERS
+
+ADMIN PRIVACY
+- Removed Admin links from all customer pages.
+- Moved admin HTML outside the public folder.
+- Added configurable ADMIN_PORTAL_PATH.
+- /admin and /admin.html now return Page not found.
+- Added noindex, nofollow and no-cache headers.
+- ADMIN_KEY remains required for all admin APIs.
+
+ORDER REQUEST WORKSPACE
+- Clear five-step admin review guide.
+- Incoming requests and selected-order inspector use a side-by-side workspace.
+- Selected order inspector is sticky on desktop.
+- Clear empty state when no request is selected.
+- Added explanations for buyer, pricing, payment, delivery, chat and proof controls.
+- Order queues remain separated by status.
+
+CUSTOMER CHECKOUT
+- Separated checkout remains preserved.
+- Each step now explains its single purpose.
+- Only one checkout step is shown at a time.
+- CT/NCT include Game Pass verification; Instant/Gifting skip it.

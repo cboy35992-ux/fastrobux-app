@@ -1,0 +1,21 @@
+RSR SHOP V14.1 — PRIVATE ADMIN ACCESS
+
+The admin page is no longer inside the public website and all customer-facing Admin links were removed.
+
+Render Environment Variable:
+ADMIN_PORTAL_PATH=choose-a-long-private-path
+
+Example:
+ADMIN_PORTAL_PATH=reck-ops-x7p4-private
+
+Then your admin URL is:
+https://YOUR-DOMAIN.onrender.com/reck-ops-x7p4-private
+
+/admin and /admin.html return Page not found.
+
+IMPORTANT:
+- The hidden URL is an extra privacy layer, not the main security control.
+- ADMIN_KEY is still required for every admin API action.
+- Use a new long ADMIN_KEY.
+- Do not share screenshots containing the hidden URL or ADMIN_KEY.
+- The configured admin path appears only in Render startup logs.

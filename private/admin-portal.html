@@ -1,0 +1,106 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Private Admin | RSR</title><link rel="stylesheet" href="style.css"><link rel="manifest" href="/manifest.webmanifest"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="theme-color" content="#8b5cf6"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/icons/favicon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Reck Shop">
+</head><body><header class="navbar"><a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>Private Operations Portal</small></span></a><nav><a href="/">Shop</a><span>Unread <span id="unreadBadge" class="badge hidden">0</span></span></nav></header><main class="container"><section class="panel"><h1>Private Admin Access</h1><p class="muted">Enter the ADMIN_KEY. This page is intentionally hidden from customers and search engines.</p><div class="search-row"><input id="key" type="password" placeholder="ADMIN_KEY"><button id="login">Open Dashboard</button></div><p id="loginMessage" class="message"></p></section><div id="area" class="hidden"><section class="stats-grid"><article><span>Total Orders</span><strong id="totalOrders">0</strong></article><article><span>Pending</span><strong id="pendingOrders">0</strong></article><article><span>Completed</span><strong id="completedOrders">0</strong></article><article><span>Revenue</span><strong id="revenue">₱0</strong></article><article><span>Completion Rate</span><strong id="completionRate">0%</strong></article><article><span>Average Completed Order</span><strong id="averageOrder">₱0</strong></article><article><span>Last 7 Days Orders</span><strong id="last7Orders">0</strong></article><article><span>Last 7 Days Revenue</span><strong id="last7Revenue">₱0</strong></article></section><section class="panel"><h2>Store Settings</h2><div class="two-columns"><label>Instant Stock<input id="stock" type="number"></label><label>Support Text<input id="supportText"></label><label>CT Rate<input id="rateCt" type="number" step=".01"></label><label>NCT Rate<input id="rateNct" type="number" step=".01"></label><label>Instant Rate<input id="rateInstant" type="number" step=".01"></label><label>Gifting Rate<input id="rateGifting" type="number" step=".01"></label><label>PayPal Email<input id="paypalEmail"></label><label>Wise Details<input id="wiseDetails"></label><label>Payoneer Details<input id="payoneerDetails"></label></div><div class="two-columns"><label class="confirm"><input id="paymentGCashEnabled" type="checkbox"> GCash enabled</label><label class="confirm"><input id="paymentGoTymeEnabled" type="checkbox"> GoTyme enabled</label><label class="confirm"><input id="paymentPayPalEnabled" type="checkbox"> PayPal enabled</label><label class="confirm"><input id="paymentWiseEnabled" type="checkbox"> Wise enabled</label><label class="confirm"><input id="paymentPayoneerEnabled" type="checkbox"> Payoneer enabled</label><label class="confirm"><input id="shopBannerEnabled" type="checkbox"> Show announcement banner</label><label>Announcement Text<input id="shopBannerText"></label><label class="confirm"><input id="maintenanceMode" type="checkbox"> Maintenance mode</label></div><label class="confirm"><input id="supportOnline" type="checkbox"> Support Online</label><button id="saveSettings" class="button primary full">Save Settings</button></section>
+<section class="panel">
+  <h2>Trust Center & Business Profile</h2>
+  <p class="muted">Publish only accurate information that customers can verify. These fields can be edited and saved anytime.</p>
+  <div class="two-columns">
+    <label>Business Name<input id="businessName"></label>
+    <label>Owner/Representative Display Name<input id="businessOwnerDisplay"></label>
+    <label>Business Email<input id="businessEmail" type="email"></label>
+    <label>Phone / Contact Number<input id="businessPhone"></label>
+    <label>Business Location<input id="businessAddress"></label>
+    <label>Support Hours<input id="supportHours"></label>
+    <label>Facebook Page URL<input id="facebookUrl" type="url"></label>
+    <label>Discord Invite URL<input id="discordUrl" type="url"></label>
+  </div>
+  <label>Trust Notice<textarea id="trustNotice"></textarea></label>
+  <div class="two-columns">
+    <label class="confirm"><input id="publicStatsEnabled" type="checkbox"> Enable public statistics</label>
+    <label class="confirm"><input id="publicCompletedCount" type="checkbox"> Show completed-order count</label>
+    <label class="confirm"><input id="publicReviewCount" type="checkbox"> Show published-review count</label>
+    <label class="confirm"><input id="publicAverageRating" type="checkbox"> Show average rating</label>
+  </div>
+  <button id="saveTrustSettings" class="button primary full">Save Trust Center</button>
+</section>
+
+<section class="panel"><h2>Delivery Estimates & Stock Alerts</h2><p class="muted">These messages appear to buyers and can be changed anytime.</p><div class="two-columns"><label>Covered Tax ETA<input id="etaCt" placeholder="10–30 minutes"></label><label>Not Covered Tax ETA<input id="etaNct" placeholder="10–30 minutes"></label><label>Instant ETA<input id="etaInstant" placeholder="5–15 minutes"></label><label>Gifting ETA<input id="etaGifting" placeholder="15–60 minutes"></label><label>Low Stock Warning Threshold<input id="lowStockThreshold" type="number" min="0"></label></div><label>Pending Robux Notice<textarea id="pendingNotice"></textarea></label><button id="saveDeliverySettings" class="button primary full">Save Delivery Settings</button></section><section class="panel"><h2>Promo Codes</h2><div class="two-columns"><label>Code<input id="promoNewCode"></label><label>Discount Type<select id="promoType"><option value="percent">Percent</option><option value="fixed">Fixed PHP</option></select></label><label>Discount Value<input id="promoValue" type="number"></label><label>Minimum Payment<input id="promoMinimum" type="number"></label><label>Maximum Uses<input id="promoMax" type="number"></label><label>Expires At<input id="promoExpires" type="datetime-local"></label></div><button id="createPromo" class="button secondary">Create Promo</button><div id="promoList" class="orders-list"></div></section><section class="admin-grid"><section class="panel"><div class="order-header"><h2>Orders</h2><div class="button-row"><button id="exportOrders" class="button secondary">Export CSV</button><button id="refresh">Refresh</button></div></div><div class="search-row"><input id="search" placeholder="Order, username or reference"><button id="searchButton">Search</button></div><label>Status Filter<select id="statusFilter"><option value="">All</option><option>Pending Payment Review</option><option>Approved</option><option>Processing</option><option>Ready for Delivery</option><option>Completed</option><option>Declined</option></select></label><div id="orders" class="orders-list"></div></section><section id="selectedPanel" class="panel hidden"><div class="order-header"><div><h2 id="selectedNumber"></h2><span id="selectedStatus" class="status-pill"></span></div><a id="adminReceipt" class="button secondary" target="_blank">Receipt</a></div><div id="selectedDetails" class="details-grid"></div><div class="status-actions"><button data-status="Approved">Approve</button><button data-status="Processing">Processing</button><button data-status="Ready for Delivery">Ready</button><button data-status="Completed">Complete</button><button class="danger" data-status="Declined">Decline</button></div><div id="adminMessages" class="chat-box"></div><div class="admin-proof-composer">
+  <div class="search-row"><input id="adminChat" placeholder="Write a customer message"><button id="adminSend">Send</button></div>
+  <label class="proof-upload-label">📷 Attach delivery proof
+    <input id="adminProofImage" type="file" accept="image/png,image/jpeg">
+  </label>
+  <div id="adminProofPreview" class="proof-preview hidden">
+    <img id="adminProofPreviewImage" alt="Selected delivery proof">
+    <div><b id="adminProofFileName"></b><button id="removeAdminProof" type="button">Remove</button></div>
+  </div>
+  <input id="adminProofCaption" placeholder="Optional image caption, e.g. Robux sent successfully">
+  <button id="adminSendProof" class="button primary full" type="button">Send Image Proof to Customer</button>
+  <p class="muted proof-note">Only send genuine proof connected to this order. PNG/JPG, maximum 8 MB.</p>
+</div></section></section><section class="panel"><h2>Review Moderation</h2><div id="reviewList" class="orders-list"></div></section><section class="panel"><div class="order-header"><h2>Backups & Audit</h2><button id="createBackup">Create Backup</button></div><div id="auditList" class="orders-list"></div></section>
+<section class="analytics-grid">
+  
+<section class="panel">
+  <h2>Tutorial / Reels Settings</h2>
+  <p class="muted">Change the tutorial video anytime. YouTube videos and Shorts can be embedded automatically. Other reel links open in a new tab.</p>
+  <div class="two-columns">
+    <label>Tutorial Title<input id="tutorialTitle" placeholder="How to Create a Roblox Game Pass"></label>
+    <label>Tutorial Video or Reel URL<input id="tutorialVideoUrl" type="url" placeholder="https://www.youtube.com/shorts/..."></label>
+  </div>
+  <label class="check"><input id="tutorialVideoEnabled" type="checkbox"> Show tutorial video publicly</label>
+  <div class="two-columns">
+    <label>Default Language
+      <select id="languageDefault">
+        <option value="en">English</option>
+        <option value="fil">Filipino / Tagalog</option>
+        <option value="ceb">Cebuano / Bisaya</option>
+        <option value="es">Español</option>
+        <option value="pt">Português</option>
+        <option value="vi">Tiếng Việt</option>
+      </select>
+    </label>
+    <label class="check"><input id="languageAutoDetect" type="checkbox"> Automatically detect the buyer's browser language</label>
+  </div>
+  <button id="saveTutorialSettings" class="button primary full">Save Tutorial & Language Settings</button>
+</section>
+<section class="panel"><h2>Orders by Method</h2><div id="methodAnalytics" class="analytics-bars"></div></section>
+  <section class="panel"><h2>Orders by Payment</h2><div id="paymentAnalytics" class="analytics-bars"></div></section>
+  <section class="panel"><h2>Status Distribution</h2><div id="statusAnalytics" class="analytics-bars"></div></section>
+</section>
+<section class="panel"><h2>Last 30 Days</h2><div class="table-wrap"><table class="analytics-table"><thead><tr><th>Date</th><th>Orders</th><th>Revenue</th></tr></thead><tbody id="dailyAnalytics"></tbody></table></div></section></div>
+<section class="panel" id="translationEditorPanel">
+  <h2>Translation Editor</h2>
+  <p class="muted">Correct or add any customer-facing translation without changing code or redeploying.</p>
+  <div class="two-columns">
+    <label>Language
+      <select id="translationLanguage">
+        <option value="fil">Filipino / Tagalog</option><option value="ceb">Cebuano / Bisaya</option>
+        <option value="es">Spanish</option><option value="pt">Portuguese</option><option value="vi">Vietnamese</option>
+        <option value="fr">French</option><option value="de">German</option><option value="id">Indonesian</option>
+        <option value="ja">Japanese</option><option value="ko">Korean</option><option value="zh">Chinese</option>
+        <option value="th">Thai</option><option value="ar">Arabic</option>
+      </select>
+    </label>
+    <label>Search saved translations<input id="translationSearch" placeholder="Search English or translated text"></label>
+  </div>
+  <label>Original English text<textarea id="translationSource" placeholder="Example: Submit Order"></textarea></label>
+  <label>Translated text<textarea id="translationValue" placeholder="Enter the exact translation"></textarea></label>
+  <div class="button-row"><button id="saveTranslation" class="button primary">Save Translation</button><button id="clearTranslationForm" class="button secondary">Clear</button></div>
+  <div id="translationList" class="translation-list"></div>
+</section>
+
+</main><script src="admin.js"></script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script>
+<script src="i18n.js" defer></script>
+<script src="install.js" defer></script>
+<script src="v94-admin.js" defer></script>
+<script src="v10-admin.js" defer></script>
+<script src="v101-admin-translations.js" defer></script>
+<script src="network.js" defer></script>
+<script src="connection-status.js" defer></script>
+<script src="v12-admin.js" defer></script>
+<script src="v135-admin.js" defer></script>
+<script src="admin-portals.js" defer></script>
+<script src="admin-order-workspace.js" defer></script>
+</body></html>

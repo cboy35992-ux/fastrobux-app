@@ -262,3 +262,7 @@ Protected proof images now load through authenticated fetch requests. Order chat
 
 V14 ADMIN PORTALS
 The admin dashboard is separated into dedicated portals so orders, support, settings and reports are no longer mixed in one long page.
+
+
+V14.1 HIDDEN ADMIN
+Set ADMIN_PORTAL_PATH in Render and read ADMIN-ACCESS-V14.1.txt. Customer checkout remains separated and the admin order workspace is clearer.

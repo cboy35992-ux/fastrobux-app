@@ -17,6 +17,13 @@ const app = express();
 
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, "public");
+const PRIVATE_DIR = path.join(ROOT, "private");
+const ADMIN_PORTAL_FILE = path.join(PRIVATE_DIR, "admin-portal.html");
+const normalizeAdminPath = value => {
+  const cleaned=String(value||"reck-admin-portal").trim().replace(/^\/+|\/+$/g,"").replace(/[^a-zA-Z0-9_-]/g,"");
+  return `/${cleaned || "reck-admin-portal"}`;
+};
+const ADMIN_PORTAL_PATH = normalizeAdminPath(process.env.ADMIN_PORTAL_PATH);
 const INDEX_FILE = path.join(PUBLIC_DIR, "index.html");
 
 function sendPublicFile(res, filename, cacheControl="no-cache") {
@@ -458,6 +465,20 @@ app.use((req,res,next)=>{
     }
   });
   next();
+});
+
+
+// V14.1 hidden admin portal. The page is not inside /public and has no customer-facing link.
+app.get("/admin.html",(_,res)=>res.status(404).type("text/plain").send("Page not found."));
+app.get("/admin",(_,res)=>res.status(404).type("text/plain").send("Page not found."));
+app.get(ADMIN_PORTAL_PATH,(req,res)=>{
+  if(!fs.existsSync(ADMIN_PORTAL_FILE))return res.status(500).type("text/plain").send("Admin portal file is missing.");
+  res.set({
+    "Cache-Control":"no-store, no-cache, must-revalidate",
+    "X-Robots-Tag":"noindex, nofollow, noarchive",
+    "X-Content-Type-Options":"nosniff"
+  });
+  res.sendFile(ADMIN_PORTAL_FILE);
 });
 
 app.use(express.static(PUBLIC_DIR));
@@ -960,6 +981,7 @@ app.get("/api/health",async(_,res)=>{
     database:databaseOk?"online":"unavailable",
     email:{enabled:EMAIL_ENABLED,online:emailOk,message:emailMessage},
     oauth:{google:OAUTH_ENABLED_GOOGLE,facebook:OAUTH_ENABLED_FACEBOOK},
+    adminPortal:{configured:Boolean(process.env.ADMIN_PORTAL_PATH)},
     storage:STORAGE_MODE,
     now:nowIso()
   });
@@ -972,6 +994,7 @@ app.get("/api/auth/config",(_,res)=>res.json({
   requireEmailVerification:REQUIRE_EMAIL_VERIFICATION,
   allowDevEmailLinks:ALLOW_DEV_EMAIL_LINKS,
   oauth:{google:OAUTH_ENABLED_GOOGLE,facebook:OAUTH_ENABLED_FACEBOOK},
+    adminPortal:{configured:Boolean(process.env.ADMIN_PORTAL_PATH)},
   sessionDays:SESSION_DAYS,
   shortSessionHours:SHORT_SESSION_HOURS
 }));
@@ -2067,6 +2090,7 @@ const server = app.listen(PORT, HOST, ()=>{
   console.log(`Uploads: ${UPLOADS_DIR}`);
   console.log(`Homepage file: ${INDEX_FILE} (${fs.existsSync(INDEX_FILE) ? "found" : "MISSING"})`);
   console.log(`Public URL: ${PUBLIC_BASE_URL}`);
+  console.log(`Private admin portal: ${ADMIN_PORTAL_PATH}`);
 });
 server.on("error", error => {
   console.error("HTTP server failed:", error);

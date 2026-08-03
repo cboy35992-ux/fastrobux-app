@@ -42,6 +42,12 @@
     methodSection.parentNode.insertBefore(wizard, methodSection);
     const host = wizard.querySelector("#checkoutStepHost");
 
+    const checkoutStepPurpose = {
+      method:"Choose only one delivery method.",
+      account:"Verify the buyer's Roblox account and enter the desired amount.",
+      gamepass:"Paste and verify the exact Game Pass required for CT or NCT.",
+      payment:"Choose payment, upload the receipt, review everything, then submit."
+    };
     const steps = {
       method: {
         title: "Choose Method",
@@ -178,6 +184,14 @@
       methodNote.textContent=selectedInfo?.note||"";
       $("checkoutStepCounter").textContent =
         `Step ${currentIndex + 1} of ${order.length}`;
+      let purpose=document.getElementById("checkoutStepPurpose");
+      if(!purpose){
+        purpose=document.createElement("small");
+        purpose.id="checkoutStepPurpose";
+        purpose.className="checkout-step-purpose";
+        document.querySelector(".checkout-progress-copy")?.appendChild(purpose);
+      }
+      purpose.textContent=checkoutStepPurpose[active]||"";
       $("checkoutProgressBar").style.width =
         `${((currentIndex + 1) / order.length) * 100}%`;
 
