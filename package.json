@@ -1,8 +1,8 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "11.2.1",
+  "version": "12.0.0",
   "private": true,
-  "description": "RSR Shop V11.2.1 Chrome Homepage Fix with corrected initialization order, explicit homepage delivery, browser diagnostics, cache recovery, and separated mobile checkout.",
+  "description": "RSR Shop V12 Permanent Commerce Edition with account-aware navigation, preserved separated checkout, storage readiness checks, downloadable backups, mobile commerce navigation, improved order tracking, and safer production deployment.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

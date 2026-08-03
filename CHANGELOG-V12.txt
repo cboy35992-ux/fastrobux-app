@@ -1,0 +1,26 @@
+RSR SHOP V12 — PERMANENT COMMERCE EDITION
+
+ACCOUNT FIX
+- Create Account is replaced by Open My Dashboard after login.
+- Login / Register becomes My Account.
+- The session is verified with the server.
+- Expired sessions are cleared automatically.
+
+ORDER FLOW
+- The separated mobile checkout remains:
+  Method → Account & Amount → Game Pass for CT/NCT → Payment & Receipt.
+- Mobile bottom navigation added.
+- Commerce order timeline module added.
+
+STORAGE & RECOVERY
+- Public storage-status check.
+- Warning when temporary /tmp storage is active.
+- Admin storage/recovery center.
+- Create and download SQLite backups.
+- Export customers CSV.
+- Export orders CSV.
+- Permanent-disk setup guide included.
+
+PRESERVED
+- CT/NCT exact Game Pass checks.
+- Authentication, password reset, translations, notifications, disputes, admin tools, tutorial editor and Render homepage fixes.

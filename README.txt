@@ -238,3 +238,7 @@ The public order form is separated into Method, Account, Game Pass, and Payment 
 
 V11 AUTHENTICATION & RELIABILITY
 Read AUTH-SETUP-V11.txt before enabling email verification or Google/Facebook login. The V10.2 separated order checkout remains included.
+
+
+V12 PERMANENT COMMERCE
+Read PERMANENT-STORAGE-SETUP-V12.txt. Create Account now changes to the customer dashboard after login, and the separated mobile checkout remains preserved.

@@ -851,7 +851,7 @@ app.get("/api/health",async(_,res)=>{
   const ok=databaseOk;
   res.status(ok?200:503).json({
     ok,
-    version:"V11.2.1 Chrome Homepage Fix",
+    version:"V12 Permanent Commerce Edition",
     server:"online",
     database:databaseOk?"online":"unavailable",
     email:{enabled:EMAIL_ENABLED,online:emailOk,message:emailMessage},
@@ -1652,6 +1652,64 @@ app.patch("/api/admin/disputes/:id",requireAdmin,(req,res)=>{
   db.prepare("UPDATE disputes SET status=?,admin_reply=?,updated_at=? WHERE id=?").run(status,reply||null,nowIso(),row.id);
   notifyUser(row.customer_id,row.order_id,"dispute","Support case updated",reply||`Your support case is now ${status}.`);audit("dispute_updated",`${row.id}: ${status}`);res.json({ok:true});
 });
+
+// V12 storage readiness and backup recovery.
+app.get("/api/storage/status",(_,res)=>{
+  const configuredRoot=String(process.env.DATA_ROOT||"");
+  const isTemporary=/^\/tmp(?:\/|$)/.test(DATA_ROOT) || !process.env.DATA_ROOT;
+  const databaseExists=fs.existsSync(DB_PATH);
+  const uploadsWritable=(()=>{try{
+    const test=path.join(UPLOADS_DIR,`.write-test-${process.pid}`);
+    fs.writeFileSync(test,"ok");fs.unlinkSync(test);return true;
+  }catch{return false}})();
+  res.json({
+    ok:databaseExists&&uploadsWritable,
+    mode:isTemporary?"temporary":"persistent",
+    configuredRoot,
+    activeRoot:DATA_ROOT,
+    databaseExists,
+    uploadsWritable,
+    warning:isTemporary
+      ?"This service is using temporary local storage. Accounts, orders, settings and receipts can be lost after a restart or redeploy."
+      :"Persistent storage is configured. Continue making external backups."
+  });
+});
+app.get("/api/admin/backups",requireAdmin,(_,res)=>{
+  try{
+    const dir=path.join(DATA_DIR,"backups");
+    const backups=fs.existsSync(dir)
+      ? fs.readdirSync(dir).filter(name=>name.endsWith(".db")).sort().reverse().map(name=>{
+          const full=path.join(dir,name),stat=fs.statSync(full);
+          return {name,size:stat.size,createdAt:stat.mtime.toISOString()};
+        })
+      : [];
+    res.json({backups});
+  }catch(error){res.status(500).json({error:"Unable to list backups."});}
+});
+app.get("/api/admin/backups/:name/download",requireAdmin,(req,res)=>{
+  const safe=path.basename(String(req.params.name||""));
+  if(!/^rsr-[A-Za-z0-9T_.-]+\.db$/.test(safe))return res.status(400).json({error:"Invalid backup name."});
+  const file=path.join(DATA_DIR,"backups",safe);
+  if(!fs.existsSync(file))return res.status(404).json({error:"Backup not found."});
+  audit("backup_downloaded",safe);
+  res.download(file,safe);
+});
+app.get("/api/admin/customers/export.csv",requireAdmin,(_,res)=>{
+  const rows=db.prepare(`SELECT u.id,u.full_name,u.email,u.email_verified,u.created_at,
+    COUNT(o.id) AS orders,
+    COALESCE(SUM(CASE WHEN o.status='Completed' THEN o.total_payment ELSE 0 END),0) AS completed_value
+    FROM users u LEFT JOIN orders o ON o.customer_id=u.id
+    GROUP BY u.id ORDER BY u.created_at DESC`).all();
+  const quote=value=>`"${String(value??"").replace(/"/g,'""')}"`;
+  const csv=[
+    ["Customer ID","Full Name","Email","Verified","Created","Orders","Completed Value"],
+    ...rows.map(row=>[row.id,row.full_name,row.email,row.email_verified?"Yes":"No",row.created_at,row.orders,row.completed_value])
+  ].map(row=>row.map(quote).join(",")).join("\n");
+  audit("customers_exported",`${rows.length} customers`);
+  res.set({"Content-Type":"text/csv; charset=utf-8","Content-Disposition":'attachment; filename="rsr-customers.csv"'});
+  res.send("\ufeff"+csv);
+});
+
 app.get("/api/admin/security",requireAdmin,(req,res)=>{
   const activeSessions=db.prepare("SELECT COUNT(*) count FROM sessions WHERE expires_at>?").get(nowIso()).count;
   const riskyOrders=db.prepare("SELECT COUNT(*) count FROM orders WHERE COALESCE(risk_flags,'')<>'' AND status NOT IN ('Completed','Declined')").get().count;
@@ -1689,7 +1747,7 @@ app.use((error,_,res,__)=>{
 
 const HOST = process.env.HOST || "0.0.0.0";
 const server = app.listen(PORT, HOST, ()=>{
-  console.log(`RSR Shop V11.2.1 Chrome Homepage Fix listening on http://${HOST}:${PORT}`);
+  console.log(`RSR Shop V12 Permanent Commerce Edition listening on http://${HOST}:${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
   console.log(`Homepage file: ${INDEX_FILE} (${fs.existsSync(INDEX_FILE) ? "found" : "MISSING"})`);

@@ -19,14 +19,20 @@
 <body>
 <header class="navbar">
   <a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>V11.2 Secure Shop</small></span></a>
-  <nav><span id="supportStatus" class="support online">● Support Online</span><a href="trust.html">Trust Center</a><a href="tutorial.html">How to Buy</a><a href="faq.html">FAQ</a><a id="accountLink" href="auth.html">Login / Register</a><a href="admin.html">Admin</a></nav>
+  <nav><span id="supportStatus" class="support online">● Support Online</span><a href="trust.html">Trust Center</a><a href="tutorial.html">How to Buy</a><a href="faq.html">FAQ</a><a id="accountLink" data-account-link href="auth.html">Login / Register</a><a href="admin.html">Admin</a></nav>
 </header>
 <div id="shopBanner" class="shop-banner hidden"></div><main class="container">
+
+<section id="storageTrustNotice" class="storage-trust-notice hidden" role="status">
+  <div><b>⚠ Storage setup requires attention</b><span id="storageTrustText"></span></div>
+  <a href="trust.html">Learn more</a>
+</section>
+
   <section class="hero">
     <span class="eyebrow">SECURE ORDER WORKFLOW</span>
     <h1>Buy through a tracked order—not through chat screenshots.</h1>
     <p>Create an account, verify the correct Roblox profile, choose local or international payment, upload a receipt, and track every status update.</p>
-    <div class="hero-actions"><a class="button primary" href="auth.html">Create Account</a><a class="button secondary" href="#shop">View Methods</a><a class="button secondary" href="tutorial.html">Buyer Tutorial</a><button id="installApp" class="button secondary hidden">Install App</button></div>
+    <div class="hero-actions"><a class="button primary" data-create-account data-guest-only href="auth.html">Create Account</a><a class="button primary hidden" data-create-account data-auth-only href="dashboard.html">Open My Dashboard</a><a class="button secondary" href="#shop">View Methods</a><a class="button secondary" href="tutorial.html">Buyer Tutorial</a><button id="installApp" class="button secondary hidden">Install App</button></div>
   </section>
 
   <section class="trust-grid">
@@ -211,4 +217,7 @@
 <script src="checkout-wizard.js" defer></script>
 <script src="network.js" defer></script>
 <script src="connection-status.js" defer></script>
+<script src="account-state.js" defer></script>
+<script src="storage-status.js" defer></script>
+<script src="mobile-commerce-nav.js" defer></script>
 </body></html>

@@ -1,0 +1,21 @@
+RSR SHOP V12 — PERMANENT STORAGE SETUP
+
+V12 can detect temporary vs persistent storage and lets the admin download database backups.
+
+IMPORTANT:
+DATA_ROOT=/tmp/rsr-data is temporary on Render Free. It is not permanent.
+To make SQLite accounts, orders, settings and receipt files permanent on Render:
+1. Use a Render plan that supports a persistent disk.
+2. Attach a disk mounted at /var/data.
+3. Set DATA_ROOT=/var/data.
+4. Keep the same disk attached during every deployment.
+5. Create and download database backups regularly.
+
+The admin dashboard includes:
+- Storage status
+- Create database backup
+- Download database backup
+- Export customers CSV
+- Export orders CSV
+
+For a larger store, migrate the SQLite database to managed PostgreSQL and receipt files to object storage. That migration requires database/storage provider credentials and should be tested separately before switching production traffic.
