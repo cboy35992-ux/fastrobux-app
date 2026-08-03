@@ -1,0 +1,19 @@
+RSR SHOP V11.2.1 — CHROME HOMEPAGE FIX
+
+Critical correction:
+- ROOT, PUBLIC_DIR and INDEX_FILE are now declared in the correct order.
+- The previous V11.2 package could reference PUBLIC_DIR before initialization.
+
+Additional fixes:
+- Explicit HTML content type for homepage files.
+- Added /browser-test diagnostic page.
+- Reduced restrictive Helmet cross-origin policies.
+- Kept /api/health, /api/ping and /reset-cache.
+- Preserved separated checkout, authentication, translations and admin features.
+
+Deployment test order:
+1. /api/health
+2. /browser-test
+3. /reset-cache
+4. /index.html?v=11.2.1
+5. /

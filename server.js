@@ -15,7 +15,10 @@ const rateLimit = require("express-rate-limit");
 
 const app = express();
 
+const ROOT = __dirname;
+const PUBLIC_DIR = path.join(ROOT, "public");
 const INDEX_FILE = path.join(PUBLIC_DIR, "index.html");
+
 function sendPublicFile(res, filename, cacheControl="no-cache") {
   const file = path.join(PUBLIC_DIR, filename);
   if (!fs.existsSync(file)) return res.status(404).type("text/plain").send("File not found.");
@@ -24,6 +27,7 @@ function sendPublicFile(res, filename, cacheControl="no-cache") {
     "X-RSR-Version": "11.2",
     "X-Content-Type-Options": "nosniff"
   });
+  res.type(path.extname(file)===".html" ? "html" : path.extname(file).slice(1));
   return res.sendFile(file);
 }
 
@@ -44,8 +48,6 @@ const FACEBOOK_APP_SECRET = String(process.env.FACEBOOK_APP_SECRET || "");
 const OAUTH_ENABLED_GOOGLE = Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
 const OAUTH_ENABLED_FACEBOOK = Boolean(FACEBOOK_APP_ID && FACEBOOK_APP_SECRET);
 
-const ROOT = __dirname;
-const PUBLIC_DIR = path.join(ROOT, "public");
 const CONFIGURED_DATA_ROOT = String(process.env.DATA_ROOT || "").trim();
 let PERSISTENT_ROOT = CONFIGURED_DATA_ROOT ? path.resolve(CONFIGURED_DATA_ROOT) : ROOT;
 let STORAGE_MODE = CONFIGURED_DATA_ROOT ? "configured" : "local";
@@ -368,6 +370,16 @@ app.use(helmet({
 }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+// V11.2.1: browser-safe homepage and diagnostics.
+app.get("/browser-test", (_,res) => {
+  res.set({
+    "Cache-Control":"no-store",
+    "Content-Type":"text/html; charset=utf-8",
+    "Cross-Origin-Resource-Policy":"same-origin"
+  });
+  res.status(200).send("<!doctype html><html><body style='font-family:system-ui;background:#111827;color:white;padding:30px'><h1>Reck Shop browser test works</h1><p>If you can see this, Chrome can reach the Render service.</p><a style='color:#c4b5fd' href='/index.html?v=11.2.1'>Open shop</a></body></html>");
+});
 
 // V11.2: serve the homepage explicitly and bypass stale PWA navigation caches.
 app.get("/", (req,res) => sendPublicFile(res, "index.html", "no-store, no-cache, must-revalidate"));
@@ -839,7 +851,7 @@ app.get("/api/health",async(_,res)=>{
   const ok=databaseOk;
   res.status(ok?200:503).json({
     ok,
-    version:"V11.2 Homepage Render Fix",
+    version:"V11.2.1 Chrome Homepage Fix",
     server:"online",
     database:databaseOk?"online":"unavailable",
     email:{enabled:EMAIL_ENABLED,online:emailOk,message:emailMessage},
@@ -1677,7 +1689,7 @@ app.use((error,_,res,__)=>{
 
 const HOST = process.env.HOST || "0.0.0.0";
 const server = app.listen(PORT, HOST, ()=>{
-  console.log(`RSR Shop V11.2 Homepage Render Fix listening on http://${HOST}:${PORT}`);
+  console.log(`RSR Shop V11.2.1 Chrome Homepage Fix listening on http://${HOST}:${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
   console.log(`Homepage file: ${INDEX_FILE} (${fs.existsSync(INDEX_FILE) ? "found" : "MISSING"})`);

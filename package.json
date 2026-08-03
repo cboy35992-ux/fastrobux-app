@@ -1,8 +1,8 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "11.2.0",
+  "version": "11.2.1",
   "private": true,
-  "description": "RSR Shop V11.2 Render homepage recovery build with explicit root delivery, 0.0.0.0 binding, cache/service-worker recovery, health probes and preserved separated checkout.",
+  "description": "RSR Shop V11.2.1 Chrome Homepage Fix with corrected initialization order, explicit homepage delivery, browser diagnostics, cache recovery, and separated mobile checkout.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
