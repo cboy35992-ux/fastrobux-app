@@ -162,7 +162,7 @@
 </section>
 
 <section class="panel">
-    <div class="section-title"><span>3</span><div><h2>Choose Payment and Upload Receipt</h2><p>Philippine and international methods are available.</p></div></div>
+    <div class="section-title"><span>3</span><div><h2>Choose Payment and Proof</h2><p>Select your payment platform, then provide exactly one proof: a photo receipt or a reference number.</p></div></div>
     <div class="payment-grid">
       <label class="payment-card active"><input type="radio" name="paymentMethod" value="GCash" checked><b>GCash / InstaPay</b><span>Philippines</span></label>
       <label class="payment-card"><input type="radio" name="paymentMethod" value="GoTyme Bank"><b>GoTyme / InstaPay</b><span>Philippines</span></label>
@@ -176,14 +176,22 @@
     </div>
     <div class="payment-safety">
       <div><strong>✓ Verify the exact amount</strong><span>Pay only the total shown on this page.</span></div>
-      <div><strong>✓ Keep your receipt</strong><span>Upload a clear PNG or JPG image.</span></div>
+      <div><strong>✓ Provide one proof</strong><span>Choose either a clear receipt image or the payment reference number.</span></div>
       <div><strong>✓ Never share passwords</strong><span>Reck Shop never asks for your Roblox password.</span></div>
     </div>
-    <div class="two-columns">
-      <label>Sender Name<input id="senderName" placeholder="Name used for payment"></label>
-      <label>Reference Number<input id="referenceNumber" placeholder="Payment reference"></label>
+    <label>Sender Name<input id="senderName" placeholder="Name used for payment"></label>
+    <div class="evidence-choice" role="radiogroup" aria-label="Payment proof type">
+      <label class="evidence-option active"><input type="radio" name="paymentEvidenceType" value="photo" checked><span>📷</span><div><b>Photo Receipt</b><small>Upload the successful payment screenshot.</small></div></label>
+      <label class="evidence-option"><input type="radio" name="paymentEvidenceType" value="reference"><span>#</span><div><b>Reference Number</b><small>Enter the transaction reference instead of a photo.</small></div></label>
     </div>
-    <label>Payment Receipt<input id="receipt" type="file" accept="image/png,image/jpeg"></label>
+    <div id="photoEvidencePanel" class="evidence-panel">
+      <label>Payment Receipt<input id="receipt" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+      <div id="receiptPreview" class="receipt-upload-preview hidden"><img id="receiptPreviewImage" alt="Selected payment receipt preview"><div><b id="receiptPreviewName"></b><small>Preview before submitting</small></div><button id="removeReceipt" type="button" class="button secondary">Remove</button></div>
+    </div>
+    <div id="referenceEvidencePanel" class="evidence-panel hidden">
+      <label>Payment Reference Number<input id="referenceNumber" placeholder="Example: 1234 5678 9012"></label>
+      <p class="field-help">Use the reference shown in GCash, GoTyme, PayPal, Wise, Payoneer, or your selected payment app.</p>
+    </div>
     <label class="confirm"><input id="confirm" type="checkbox"> I confirm the Roblox account and payment information are correct.</label>
     <button id="submitOrder" class="button primary full">Submit Order</button>
     <p id="submitMessage" class="message"></p>
@@ -241,7 +249,7 @@
       <div><span>Initial Review</span><b>Usually 1–10 minutes</b></div>
       <div><span>Selected Method ETA</span><b id="successMethodEta">Checking…</b></div>
     </div>
-    <div class="order-success-warning">Do not create another order using the same receipt. You will receive a notification when your payment is approved or when staff needs a correction.</div>
+    <div class="order-success-warning">Do not create another order using the same payment proof. You will receive a notification when your payment is approved or when staff needs a correction.</div>
     <div class="button-row">
       <a id="successOpenOrder" class="button primary" href="dashboard.html">Open My Orders</a>
       <a class="button secondary" href="support.html">Contact Support</a>

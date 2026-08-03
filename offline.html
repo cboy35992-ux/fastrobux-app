@@ -1,5 +1,5 @@
 "use strict";const $=id=>document.getElementById(id),token=(localStorage.getItem("rsrSession")||sessionStorage.getItem("rsrSession")),number=new URLSearchParams(location.search).get("order");if(!token)location.href="auth.html";const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));async function api(url,options={}){options.headers={...(options.headers||{}),Authorization:`Bearer ${token}`};const r=await fetch(url,options),t=await r.text();let d;try{d=t?JSON.parse(t):{}}catch{throw new Error(`Invalid response (${r.status}).`)}if(!r.ok)throw new Error(d.error||`Request failed (${r.status}).`);return d}async function load(){try{const d=await api(`/api/orders/${encodeURIComponent(number)}`);$("number").textContent=d.orderNumber;$("status").textContent=d.status;$("account").innerHTML=`<img src="${esc(d.avatarUrl)}"><div><b>${esc(d.displayName)}</b><span>@${esc(d.username)}</span></div>`;$("details").innerHTML=`<div><span>Method</span><b>${esc(d.method)}</b></div><div><span>Amount</span><b>${Number(d.amount).toLocaleString()} Robux</b></div><div><span>Total</span><b>₱${Number(d.totalPayment).toFixed(2)}</b></div><div><span>Payment</span><b>${esc(d.paymentMethod)}</b></div><div><span>Sender</span><b>${esc(d.senderName)}</b></div><div><span>Reference</span><b>${esc(d.referenceNumber)}</b></div>${d.gamePassUrl?`<div><span>Game Pass</span><b><a href="${esc(d.gamePassUrl)}" target="_blank" rel="noopener">Open buyer Game Pass (${Number(d.gamePassPrice).toLocaleString()} R$)</a></b></div>`:""}`;$("receiptLink").href=`/api/orders/${encodeURIComponent(number)}/receipt`;$("timeline").innerHTML=d.history.map(h=>`<div><span>✓</span><div><b>${esc(h.status)}</b><small>${new Date(h.created_at).toLocaleString()}</small></div></div>`).join("");renderMessages(d.messages);$("messages").scrollTop=$("messages").scrollHeight;$("reviewPanel").classList.toggle("hidden",d.status!=="Completed")}catch(e){$("message").className="message error";$("message").textContent=e.message}}$("send").onclick=async()=>{const text=$("chat").value.trim();if(!text)return;try{await api(`/api/orders/${encodeURIComponent(number)}/messages`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});$("chat").value="";load()}catch(e){alert(e.message)}};$("review").onclick=async()=>{try{await api(`/api/orders/${encodeURIComponent(number)}/review`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({rating:Number($("rating").value),comment:$("comment").value.trim()})});$("reviewMessage").className="message success";$("reviewMessage").textContent="Review submitted for approval."}catch(e){$("reviewMessage").className="message error";$("reviewMessage").textContent=e.message}};load();
-setInterval(load,10000);
+// Realtime updates below replace the old full-page reload loop so proof images are not repeatedly re-downloaded.
 
 
 let lastMessageId=0;
@@ -10,28 +10,21 @@ function escapeHtml(value){
   return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 async function loadProtectedProof(messageId,img,link){
+  const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),12000);
   try{
-    const response=await fetch(`/api/order-message-images/${messageId}`,{
-      headers:{Authorization:`Bearer ${token}`},
-      cache:"no-store"
-    });
-    if(response.status===401){
-      location.href=`auth.html?returnTo=${encodeURIComponent(location.pathname+location.search)}`;
-      return;
-    }
-    if(!response.ok)throw new Error("Proof image unavailable.");
-    const blob=await response.blob();
-    const old=proofObjectUrls.get(messageId);
-    if(old)URL.revokeObjectURL(old);
-    const url=URL.createObjectURL(blob);
-    proofObjectUrls.set(messageId,url);
-    img.src=url;
-    link.href=url;
-    img.closest(".customer-proof-card")?.classList.remove("proof-loading");
-  }catch{
-    img.alt="Proof image unavailable";
-    img.closest(".customer-proof-card")?.classList.add("proof-error");
-  }
+    const response=await fetch(`/api/order-message-images/${messageId}`,{headers:{Authorization:`Bearer ${token}`},cache:"no-store",signal:controller.signal});
+    if(response.status===401){location.href=`auth.html?returnTo=${encodeURIComponent(location.pathname+location.search)}`;return;}
+    if(!response.ok){const d=await response.json().catch(()=>({}));throw new Error(d.error||"Proof image unavailable.")}
+    const blob=await response.blob();if(!blob.type.startsWith("image/"))throw new Error("Invalid image response.");
+    const old=proofObjectUrls.get(messageId);if(old)URL.revokeObjectURL(old);
+    const url=URL.createObjectURL(blob);proofObjectUrls.set(messageId,url);link.href=url;
+    await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error("Image decode failed."));img.src=url});
+    link.classList.remove("proof-loading","proof-error");
+  }catch(error){
+    link.classList.remove("proof-loading");link.classList.add("proof-error");
+    const loader=link.querySelector(".proof-loader");if(loader)loader.textContent=error.name==="AbortError"?"Image timed out — tap to retry":"Image unavailable — tap to retry";
+    link.removeAttribute("href");link.onclick=e=>{e.preventDefault();link.classList.add("proof-loading");loadProtectedProof(messageId,img,link)};
+  }finally{clearTimeout(timeout)}
 }
 function messageHtml(m){
   return `<div class="chat-message ${escapeHtml(m.sender)}" data-message-id="${Number(m.id)||0}">
@@ -49,7 +42,7 @@ function bindProofs(container){
   container.querySelectorAll("[data-proof-image]").forEach(img=>{
     const id=Number(img.dataset.proofImage);
     const link=container.querySelector(`[data-proof-link="${id}"]`);
-    if(link&&!img.src)loadProtectedProof(id,img,link);
+    if(link&&!img.getAttribute("src"))loadProtectedProof(id,img,link);
   });
 }
 function renderMessages(messages){
@@ -69,9 +62,9 @@ function appendMessages(messages){
   if(messages?.length)box.scrollTop=box.scrollHeight;
 }
 async function realtimeTick(){
-  if(document.hidden||!orderNumber)return;
+  if(document.hidden||!number)return;
   try{
-    const response=await fetch(`/api/orders/${encodeURIComponent(orderNumber)}/realtime?after=${lastMessageId}`,{
+    const response=await fetch(`/api/orders/${encodeURIComponent(number)}/realtime?after=${lastMessageId}`,{
       headers:{Authorization:`Bearer ${token}`},cache:"no-store"
     });
     if(response.status===401){location.href=`auth.html?returnTo=${encodeURIComponent(location.pathname+location.search)}`;return}
@@ -106,7 +99,7 @@ async function confirmDelivery(){
   const button=$("confirmDeliveryButton");
   button.disabled=true;button.textContent="Confirming…";
   try{
-    const response=await fetch(`/api/orders/${encodeURIComponent(orderNumber)}/confirm-delivery`,{
+    const response=await fetch(`/api/orders/${encodeURIComponent(number)}/confirm-delivery`,{
       method:"POST",headers:{Authorization:`Bearer ${token}`}
     });
     const data=await response.json().catch(()=>({}));

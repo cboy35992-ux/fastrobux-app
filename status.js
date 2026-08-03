@@ -46,7 +46,7 @@
       method:"Choose only one delivery method.",
       account:"Verify the buyer's Roblox account and enter the desired amount.",
       gamepass:"Paste and verify the exact Game Pass required for CT or NCT.",
-      payment:"Choose payment, upload the receipt, review everything, then submit."
+      payment:"Choose a payment platform, then provide exactly one proof: photo receipt or transaction reference."
     };
     const steps = {
       method: {
@@ -62,7 +62,7 @@
         nodes: [gamepassSection]
       },
       payment: {
-        title: "Payment & Receipt",
+        title: "Payment & Proof",
         nodes: [smartCheck, paymentSection].filter(Boolean)
       }
     };
@@ -143,7 +143,8 @@
           typeof verifiedGamePassData === "undefined" ||
           !verifiedGamePassData
         ) {
-          toast("Verify the exact Roblox Game Pass before continuing.");
+          toast("Step 3 is not complete yet. Paste the Game Pass link, tap Verify Game Pass, and wait for the green Verified result before continuing.");
+          const status=$("gamepassStatus"); if(status){status.className="message warning";status.textContent="Required: verify the exact Game Pass price before payment.";}
           $("gamepassLink")?.focus();
           return false;
         }
@@ -275,7 +276,7 @@
         ) {
           $("amount")?.focus();
         }
-      }, 700);
+      }, 1400);
     });
 
     $("verifyGamepass")?.addEventListener("click", () => {
@@ -292,7 +293,13 @@
           document.querySelector(".checkout-continue-payment")?.remove();
           $("verifiedGamepassCard")?.insertAdjacentElement("afterend", successButton);
         }
-      }, 700);
+      }, 900);
+      let attempts=0;
+      const wait=setInterval(()=>{
+        attempts++;
+        if(typeof verifiedGamePassData!=="undefined"&&verifiedGamePassData){clearInterval(wait);render(false);}
+        if(attempts>=12)clearInterval(wait);
+      },500);
     });
 
     // Put the buyer directly on the order wizard when arriving with #shop.
