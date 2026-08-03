@@ -258,3 +258,7 @@ After successful submission, customers see a confirmation popup. Admin can send 
 
 V13.7 REALTIME PROOF & CHAT
 Protected proof images now load through authenticated fetch requests. Order chat and status poll every 3 seconds. Customers can confirm delivery.
+
+
+V14 ADMIN PORTALS
+The admin dashboard is separated into dedicated portals so orders, support, settings and reports are no longer mixed in one long page.

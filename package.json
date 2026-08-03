@@ -1,8 +1,8 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "13.7.0",
+  "version": "14.0.0",
   "private": true,
-  "description": "RSR Shop V13.7 Realtime Proof & Chat Edition with authenticated blob image loading, automatic polling for customer/admin messages and order status, delivery confirmation, proof notifications, and preserved separated checkout.",
+  "description": "RSR Shop V14 Admin Portals Edition with separate dashboard, order requests, support, customers, analytics, reviews, settings, translations, security and backup workspaces.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

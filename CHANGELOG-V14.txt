@@ -1,0 +1,20 @@
+RSR SHOP V14 — SEPARATED ADMIN PORTALS
+
+- Admin no longer needs to scroll through one long dashboard.
+- Added separate workspaces:
+  Dashboard
+  Order Requests
+  Support
+  Customers
+  Analytics
+  Reviews
+  Settings
+  Translations
+  Security
+  Backups
+- Existing admin panels are automatically moved into the correct portal.
+- Order Requests has quick queue buttons for Pending Review, Approved, Processing, Ready, Completed and Declined.
+- Selected order details and proof/chat controls stay inside the Order Requests portal.
+- Mobile admin uses a slide-out menu.
+- The last opened portal is remembered.
+- Existing V13.7 secure proof images, realtime chat, delivery confirmation and separated customer checkout remain preserved.

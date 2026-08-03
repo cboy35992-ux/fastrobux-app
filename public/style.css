@@ -267,3 +267,24 @@
 #confirmDeliveryButton{margin-top:12px;background:linear-gradient(135deg,#16a34a,#22c55e);border-color:#22c55e}
 .chat-message{animation:messageIn .18s ease}.chat-message img{display:block}
 @keyframes messageIn{from{opacity:.3;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+/* V14 separated admin portals */
+.admin-portal-shell{display:grid;grid-template-columns:250px minmax(0,1fr);gap:15px;min-height:calc(100vh - 92px);margin-top:15px}
+.admin-portal-sidebar{position:sticky;top:12px;align-self:start;display:flex;flex-direction:column;gap:13px;max-height:calc(100vh - 24px);padding:14px;border:1px solid var(--border);border-radius:18px;background:rgba(8,15,30,.97);overflow:auto}
+.admin-portal-title{display:flex;align-items:center;gap:10px;padding:7px}.admin-portal-title>div{display:flex;flex-direction:column}.admin-portal-title small{color:var(--muted)}
+.admin-portal-sidebar nav{display:grid;gap:5px}.admin-portal-sidebar nav button{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:8px;min-height:46px;padding:9px 11px;border:1px solid transparent;border-radius:12px;background:transparent;color:var(--muted);text-align:left}
+.admin-portal-sidebar nav button:hover,.admin-portal-sidebar nav button.active{border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.15);color:#fff}
+.admin-portal-sidebar nav button span{font-size:18px}.admin-portal-sidebar nav button em{font-style:normal;font-size:11px;color:#c4b5fd}
+.admin-portal-main{min-width:0}.admin-portal-header{position:sticky;top:0;z-index:45;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;padding:13px 16px;border:1px solid var(--border);border-radius:16px;background:rgba(8,15,30,.96);backdrop-filter:blur(14px)}
+.admin-portal-header h1{margin:2px 0 0}.admin-portal-actions{display:flex;align-items:center;gap:8px}.admin-portal-actions button{display:none}
+.admin-portal-pane{display:none}.admin-portal-pane.active{display:grid;gap:14px;animation:portalIn .18s ease}.admin-portal-pane>.panel,.admin-portal-pane>section{margin:0!important}
+.admin-order-status-tabs{display:flex;gap:7px;overflow:auto;padding-bottom:3px}.admin-order-status-tabs button{white-space:nowrap}.admin-order-status-tabs button.active{background:#7c3aed;border-color:#8b5cf6;color:#fff}
+.admin-portal-empty{padding:35px;text-align:center;color:var(--muted)}
+@keyframes portalIn{from{opacity:.35;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media(max-width:900px){
+ .admin-portal-shell{grid-template-columns:1fr}
+ .admin-portal-sidebar{position:fixed;left:8px;top:8px;bottom:8px;z-index:220;width:min(82vw,290px);max-height:none;transform:translateX(calc(-100% - 18px));transition:transform .2s ease;box-shadow:0 25px 80px rgba(0,0,0,.65)}
+ .admin-portal-shell.sidebar-open .admin-portal-sidebar{transform:translateX(0)}
+ .admin-portal-actions button{display:inline-grid;place-items:center;min-width:42px;height:42px}
+ .admin-portal-header{top:5px}
+}
