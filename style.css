@@ -1,69 +1,11 @@
-
-(() => {
-  const YT_PATTERNS = [
-    /youtube\.com\/shorts\/([A-Za-z0-9_-]{6,})/i,
-    /youtube\.com\/watch\?[^#]*v=([A-Za-z0-9_-]{6,})/i,
-    /youtu\.be\/([A-Za-z0-9_-]{6,})/i,
-    /youtube\.com\/embed\/([A-Za-z0-9_-]{6,})/i
-  ];
-
-  function youtubeId(url) {
-    for (const pattern of YT_PATTERNS) {
-      const match = String(url || "").match(pattern);
-      if (match) return match[1];
-    }
-    return "";
-  }
-
-  function safeUrl(url) {
-    try {
-      const parsed = new URL(url, location.origin);
-      return ["http:", "https:"].includes(parsed.protocol) ? parsed.href : "";
-    } catch {
-      return "";
-    }
-  }
-
-  function renderTutorial(settings) {
-    const tutorial = settings?.tutorial || {};
-    const url = safeUrl(tutorial.videoUrl);
-    const title = tutorial.title || "How to Create a Roblox Game Pass";
-    const enabled = tutorial.enabled !== false && Boolean(url);
-    const id = youtubeId(url);
-
-    document.querySelectorAll("[data-tutorial-section]").forEach(el => {
-      el.classList.toggle("hidden", !enabled);
-    });
-    document.querySelectorAll("[data-tutorial-title]").forEach(el => {
-      el.textContent = title;
-    });
-    document.querySelectorAll("[data-tutorial-link]").forEach(el => {
-      el.href = url || "tutorial.html";
-    });
-
-    document.querySelectorAll("[data-tutorial-frame]").forEach(frame => {
-      if (!enabled) {
-        frame.removeAttribute("src");
-        return;
-      }
-      if (id) {
-        frame.src = `https://www.youtube.com/embed/${encodeURIComponent(id)}`;
-        frame.classList.remove("hidden");
-      } else {
-        frame.removeAttribute("src");
-        frame.classList.add("hidden");
-      }
-    });
-
-    document.querySelectorAll("[data-non-youtube-tutorial]").forEach(card => {
-      card.classList.toggle("hidden", !enabled || Boolean(id));
-    });
-  }
-
-  window.RSRTutorial = { renderTutorial };
-
-  fetch("/api/settings")
-    .then(r => r.ok ? r.json() : Promise.reject())
-    .then(renderTutorial)
-    .catch(() => {});
-})();
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Terms of Service | RSR</title><link rel="stylesheet" href="style.css"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#8b5cf6"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/icons/favicon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Reck Shop">
+</head><body><header class="navbar"><a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>Terms of Service</small></span></a></header><main class="container narrow"><section class="panel"><h1>Terms of Service</h1><p>Customers must submit accurate account, order and payment information.</p><p>Orders are manually reviewed and are subject to availability and the displayed shop policies.</p><p>Never provide a Roblox password, verification code, authentication cookie or recovery information.</p><p>Reck Shop is an independent shop and is not affiliated with Roblox Corporation.</p></section></main><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script>
+<script src="i18n.js" defer></script>
+<script src="install.js" defer></script>
+<script src="network.js" defer></script>
+<script src="connection-status.js" defer></script>
+</body></html>

@@ -1,57 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Trust Center | Reck Shop</title>
-<meta name="description" content="See how Reck Shop protects orders, receipts, accounts and customer support.">
-<link rel="stylesheet" href="style.css">
-<link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#8b5cf6">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Order | RSR</title><link rel="stylesheet" href="style.css"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#8b5cf6"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="/icons/favicon.png">
-</head>
-<body>
-<header class="navbar">
-  <a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>Trust Center</small></span></a>
-  <nav><a href="/">Shop</a><a href="faq.html">FAQ</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></nav>
-</header>
-<main class="container">
-  <section class="hero trust-hero">
-    <span class="eyebrow">TRANSPARENCY FIRST</span>
-    <h1>See exactly how Reck Shop protects every order.</h1>
-    <p>Real order statistics, verified-purchase reviews, private receipts, clear policies and public support information.</p>
-  </section>
-
-  <section id="businessCard" class="panel trust-business"></section>
-
-  <section class="stats-grid" id="trustStats">
-    <article><span>Completed Orders</span><strong id="completedOrders">—</strong></article>
-    <article><span>Published Reviews</span><strong id="publishedReviews">—</strong></article>
-    <article><span>Average Rating</span><strong id="averageRating">—</strong></article>
-    <article><span>Registered Customers</span><strong id="registeredCustomers">—</strong></article>
-  </section>
-
-  <section class="panel">
-    <div class="section-title"><span>✓</span><div><h2>Customer Protection</h2><p>Security features built into the shop.</p></div></div>
-    <div id="safeguards" class="trust-checklist"></div>
-  </section>
-
-  <section class="panel">
-    <div class="section-title"><span>★</span><div><h2>Latest Completed Orders</h2><p>Order numbers are partially hidden for customer privacy.</p></div></div>
-    <div id="completedList" class="orders-list"></div>
-  </section>
-
-  <section class="panel">
-    <div class="section-title"><span>i</span><div><h2>Independent Shop Notice</h2></div></div>
-    <p id="affiliationNotice" class="muted"></p>
-  </section>
-</main>
-<footer><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="refund.html">Refund Policy</a><a href="faq.html">FAQ</a></footer>
-<script src="trust.js"></script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}))}</script>
-
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Reck Shop">
+</head><body><header class="navbar"><a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>Private Order</small></span></a><nav><a href="dashboard.html">Dashboard</a><a href="support.html">Support</a></nav></header><main class="container narrow"><section class="panel"><div class="order-header"><div><span class="eyebrow">PRIVATE ORDER</span><h1 id="number"></h1></div><span id="status" class="status-pill"></span></div><div id="account" class="roblox-result"></div><div id="details" class="details-grid"></div><a id="receiptLink" class="button secondary" target="_blank">Open My Receipt</a><section class="eta-card"><span>Estimated Processing</span><b id="deliveryEta">Checking…</b><small id="pendingNotice"></small></section><div id="timeline" class="timeline enhanced-timeline"></div><h2>Support Chat</h2><div id="messages" class="chat-box"></div><div class="search-row"><input id="chat" placeholder="Type a message"><button id="send">Send</button></div></section><section id="reviewPanel" class="panel hidden"><h2>Review this completed order</h2><label>Rating<select id="rating"><option value="5">5 stars</option><option value="4">4 stars</option><option value="3">3 stars</option><option value="2">2 stars</option><option value="1">1 star</option></select></label><label>Comment<textarea id="comment"></textarea></label><button id="review" class="button primary full">Submit Review</button><p id="reviewMessage" class="message"></p></section><p id="message" class="message"></p></main><script src="order.js"></script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script>
 <script src="i18n.js" defer></script>
 <script src="install.js" defer></script>
+<nav class="mobile-bottom-nav"><a href="shop.html">Start Order</a><a class="active" href="dashboard.html">Orders</a><a href="tutorial.html">Tutorial</a><a href="trust.html">Trust</a></nav><script src="v94-customer.js" defer></script>
 <script src="network.js" defer></script>
 <script src="connection-status.js" defer></script>
+<script src="account-state.js" defer></script>
+<script src="mobile-commerce-nav.js" defer></script>
+<script src="commerce-timeline.js" defer></script>
 </body></html>

@@ -1,20 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>How to Buy | Reck Shop</title>
+  <meta name="description" content="Step-by-step Reck Shop guide for Covered Tax, Not Covered Tax, Robux Instant, In-Game Gifting, Game Pass creation and receipt submission.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#8b5cf6">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="/icons/favicon.png">
+</head>
+<body>
+<header class="navbar">
+  <a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>Buyer Tutorial</small></span></a>
+  <nav><a href="shop.html">Start Order</a><a href="#gamepass">Game Pass</a><a href="#methods">Methods</a><a href="faq.html">FAQ</a><a href="support.html">Support</a></nav>
+</header>
 
-(() => {
-  const $=id=>document.getElementById(id);
-  const sessionKey=localStorage.getItem("rsr-session-key")||(crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`);
-  localStorage.setItem("rsr-session-key",sessionKey);
-  const track=eventType=>fetch("/api/events",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({eventType,sessionKey,path:location.pathname,language:document.documentElement.lang})}).catch(()=>{});
-  track("page_view"); if(!$("submitOrder"))return;
-  const panel=document.createElement("section");panel.className="panel v10-checkout";panel.innerHTML='<div class="section-title"><span>✓</span><div><h2>Smart Checkout Check</h2><p>Complete every requirement before submitting.</p></div></div><div id="v10Checklist" class="v10-checklist"></div><div class="v10-security-note">🛡️ Duplicate receipts and reference numbers are flagged for manual review. Never send your Roblox password, cookie, or verification code.</div>';
-  $("submitOrder").closest("section").before(panel);
-  const checks=()=>{const method=typeof selectedMethod!=="undefined"?selectedMethod:"ct",amount=Number($("amount")?.value||0),receipt=$("receipt")?.files?.[0],payment=document.querySelector('input[name="paymentMethod"]:checked')?.value,gp=["ct","nct"].includes(method);
-    const items=[["Roblox account selected",Boolean(typeof selectedRoblox!=="undefined"&&selectedRoblox)],["Valid Robux amount entered",amount>0],["Game Pass verified at exact price",!gp||Boolean(typeof verifiedGamePassData!=="undefined"&&verifiedGamePassData)],["Payment method selected",Boolean(payment)],["Sender name entered",Boolean($("senderName")?.value.trim())],["Reference number entered",Boolean($("referenceNumber")?.value.trim())],["Clear receipt uploaded",Boolean(receipt)],["Information confirmation checked",Boolean($("confirm")?.checked)]];
-    $("v10Checklist").innerHTML=items.map(([l,o])=>`<div class="${o?"done":"pending"}"><span>${o?"✓":"○"}</span><b>${l}</b></div>`).join("");return{ready:items.every(x=>x[1]),method,amount,payment,receipt};};
-  ["input","change","click"].forEach(n=>document.addEventListener(n,()=>setTimeout(checks,0)));checks();
-  const modal=document.createElement("div");modal.className="v10-confirm-modal hidden";modal.innerHTML='<div class="v10-confirm-card"><button class="v10-close" type="button">×</button><span class="eyebrow">FINAL CHECK</span><h2>Confirm Order Details</h2><div id="v10Summary" class="details-grid"></div><label class="confirm"><input id="v10FinalConfirm" type="checkbox"> I reviewed this summary and confirm it is correct.</label><button id="v10FinalSubmit" class="button primary full">Confirm & Submit Order</button></div>';document.body.appendChild(modal);
-  modal.querySelector(".v10-close").onclick=()=>modal.classList.add("hidden");modal.onclick=e=>{if(e.target===modal)modal.classList.add("hidden")};
-  $("submitOrder").addEventListener("click",e=>{if(e.__v10Approved)return;e.preventDefault();e.stopImmediatePropagation();const s=checks();if(!s.ready){showToast?.("Complete every checkout requirement first.","error");panel.scrollIntoView({behavior:"smooth",block:"center"});return}
-    track("order_submit_attempt");$("v10Summary").innerHTML=`<div><span>Method</span><b>${$("methodDisplay")?.textContent||s.method}</b></div><div><span>Roblox Username</span><b>${typeof selectedRoblox!=="undefined"&&selectedRoblox?"@"+selectedRoblox.username:""}</b></div><div><span>Desired Robux</span><b>${s.amount.toLocaleString()}</b></div><div><span>Required Game Pass</span><b>${$("gamepassRequiredPrice")?.textContent||"Not required"}</b></div><div><span>Payment Method</span><b>${s.payment}</b></div><div><span>Total Payment</span><b>${$("totalDisplay")?.textContent||""}</b></div><div><span>Receipt</span><b>${s.receipt?.name||""}</b></div><div><span>Reference</span><b>${$("referenceNumber")?.value||""}</b></div>`;$("v10FinalConfirm").checked=false;modal.classList.remove("hidden")},true);
-  $("v10FinalSubmit").onclick=()=>{if(!$("v10FinalConfirm").checked)return showToast?.("Confirm the final summary first.","error");modal.classList.add("hidden");const ev=new MouseEvent("click",{bubbles:true,cancelable:true});Object.defineProperty(ev,"__v10Approved",{value:true});$("submitOrder").dispatchEvent(ev)};
-  fetch("/api/settings").then(r=>r.json()).then(s=>{document.querySelectorAll("[data-method]").forEach(b=>{if(s.operations?.methods?.[b.dataset.method]===false){b.disabled=true;b.classList.add("method-disabled");b.insertAdjacentHTML("beforeend","<small>Temporarily unavailable</small>")}});if(s.operations?.ordersEnabled===false){$("submitOrder").disabled=true;$("submitMessage").className="message error";$("submitMessage").textContent="New orders are temporarily disabled. Existing orders can still be tracked."}}).catch(()=>{});
-})();
+<main class="container tutorial-page">
+  <section class="hero tutorial-hero">
+    <span class="eyebrow">STEP-BY-STEP BUYER GUIDE</span>
+    <h1>Know exactly what to do before placing your order.</h1>
+    <p>Follow the correct instructions for Covered Tax, Not Covered Tax, Robux Instant or In-Game Gifting. Never provide your Roblox password, cookie or verification code.</p>
+    <div class="hero-actions">
+      <a class="button primary" href="#video">Watch Tutorial</a>
+      <a class="button secondary" href="/#shop">Start Order</a>
+    </div>
+  </section>
+
+  <section id="video" class="panel tutorial-video-panel" data-tutorial-section>
+    <div class="section-title"><span>▶</span><div><h2 data-tutorial-title>Watch the quick video tutorial</h2><p>This video demonstrates the process visually.</p></div></div>
+    <div class="shorts-frame">
+      <iframe data-tutorial-frame
+        src="https://www.youtube.com/embed/1i6fGhZ5GL0"
+        title="Reck Shop Game Pass tutorial"
+        loading="lazy"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen></iframe>
+    </div><div data-non-youtube-tutorial class="hidden external-video-card"><p>This reel cannot be embedded here, but you can open it safely in a new tab.</p><a class="button primary" data-tutorial-link target="_blank" rel="noopener">Open Tutorial Reel</a></div>
+    <p class="muted center-text">Video not loading? <a href="tutorial.html" data-tutorial-link target="_blank" rel="noopener">Open the tutorial directly.</a></p>
+  </section>
+
+  <section class="panel tutorial-overview">
+    <div class="section-title"><span>1</span><div><h2>Basic order flow</h2><p>Every order follows this safe tracked process.</p></div></div>
+    <div class="tutorial-steps">
+      <article><span>1</span><div><b>Choose a method</b><p>Select CT, NCT, Instant or Gifting.</p></div></article>
+      <article><span>2</span><div><b>Verify Roblox account</b><p>Search the exact Roblox username and confirm the avatar.</p></div></article>
+      <article><span>3</span><div><b>Follow method requirements</b><p>Create a Game Pass for CT/NCT, or enter game/item details for gifting.</p></div></article>
+      <article><span>4</span><div><b>Pay and upload receipt</b><p>Use the displayed payment details and upload a clear successful receipt.</p></div></article>
+      <article><span>5</span><div><b>Track the order</b><p>Use your account dashboard for status updates and private support.</p></div></article>
+    </div>
+  </section>
+
+  <section id="gamepass" class="panel">
+    <div class="section-title"><span>2</span><div><h2>How to create a Roblox Game Pass</h2><p>Required for Covered Tax and Not Covered Tax.</p></div></div>
+    <ol class="numbered-guide">
+      <li>Open the Roblox <b>Creator Dashboard</b>.</li>
+      <li>Select the experience that belongs to your Roblox account.</li>
+      <li>Open <b>Monetization → Passes</b>.</li>
+      <li>Click <b>Create a Pass</b>, upload an icon and give it a name.</li>
+      <li>Open the created Pass, go to <b>Sales</b>, and turn on <b>Item for Sale</b>.</li>
+      <li>Enter the <b>exact required Game Pass price</b> shown by Reck Shop.</li>
+      <li>Save the price, copy the Game Pass URL, and paste it into the order form.</li>
+      <li>Click <b>Verify Username & Game Pass</b>. Do not change the price after it is verified.</li>
+    </ol>
+    <div class="gamepass-warning">
+      <strong>Exact-price rule:</strong> If Reck Shop requires 1,429 Robux, the Game Pass must be exactly 1,429—not 1,428 or 1,430. A mismatched price blocks the transaction.
+    </div>
+  </section>
+
+  <section id="methods" class="tutorial-methods">
+    <article class="panel method-tutorial">
+      <span class="method-icon">🛡️</span>
+      <h2>Covered Tax (CT)</h2>
+      <p class="method-summary">Best when you want to receive the full selected Robux amount after Roblox's marketplace fee.</p>
+      <ol>
+        <li>Select Covered Tax.</li>
+        <li>Search and confirm your Roblox username.</li>
+        <li>Enter the amount you want to receive.</li>
+        <li>Create a Game Pass using the exact higher required price shown.</li>
+        <li>Paste and verify the Game Pass link.</li>
+        <li>Pay, upload the receipt and submit.</li>
+      </ol>
+      <div class="example-box"><b>Example</b><span>Want to receive: 1,000 Robux</span><span>Required Game Pass: 1,429 Robux</span></div>
+    </article>
+
+    <article class="panel method-tutorial">
+      <span class="method-icon">💸</span>
+      <h2>Not Covered Tax (NCT)</h2>
+      <p class="method-summary">Lower payment price, but Roblox's marketplace fee is deducted from the Game Pass sale.</p>
+      <ol>
+        <li>Select Not Covered Tax.</li>
+        <li>Search and confirm your Roblox username.</li>
+        <li>Enter the Game Pass amount.</li>
+        <li>Create the Game Pass at the exact required price.</li>
+        <li>Paste and verify the Game Pass link.</li>
+        <li>Pay, upload the receipt and submit.</li>
+      </ol>
+      <div class="example-box"><b>Example</b><span>Game Pass price: 1,000 Robux</span><span>Expected after Roblox fee: approximately 700 Robux</span></div>
+    </article>
+
+    <article class="panel method-tutorial">
+      <span class="method-icon">⚡</span>
+      <h2>Robux Instant</h2>
+      <p class="method-summary">Uses available shop stock for faster processing. “Instant” means the order can be processed quickly after payment approval; Roblox may still place proceeds in Pending Robux.</p>
+      <ol>
+        <li>Select Robux Instant.</li>
+        <li>Confirm your exact Roblox username.</li>
+        <li>Enter an amount within the available stock.</li>
+        <li>Complete payment and upload the receipt.</li>
+        <li>Wait for payment approval and delivery processing.</li>
+        <li>Check your Roblox Pending Robux when applicable.</li>
+      </ol>
+      <div class="safe-note"><b>Important:</b> Delivery timing depends on staff approval, stock and Roblox processing. The site should never promise guaranteed immediate availability.</div>
+    </article>
+
+    <article class="panel method-tutorial">
+      <span class="method-icon">🎁</span>
+      <h2>In-Game Gifting</h2>
+      <p class="method-summary">Used when a supported Roblox game allows an item to be gifted or purchased for another player.</p>
+      <ol>
+        <li>Select In-Game Gifting.</li>
+        <li>Confirm your Roblox username.</li>
+        <li>Enter the exact game name and exact item name.</li>
+        <li>Pay and upload a clear receipt.</li>
+        <li>Use private order chat to coordinate availability and delivery.</li>
+        <li>Confirm the item received before the order is completed.</li>
+      </ol>
+      <div class="safe-note"><b>Availability rule:</b> Gifting only works when the selected game and item support the required delivery method. Staff must confirm before promising delivery.</div>
+    </article>
+  </section>
+
+  <section class="panel">
+    <div class="section-title"><span>3</span><div><h2>Receipt and order-status guide</h2><p>A clear receipt prevents delays.</p></div></div>
+    <div class="two-columns tutorial-columns">
+      <div>
+        <h3>Receipt must show</h3>
+        <ul class="check-list">
+          <li>Successful payment status</li>
+          <li>Correct amount</li>
+          <li>Date and time</li>
+          <li>Transaction/reference number</li>
+          <li>Sender name when available</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Status meanings</h3>
+        <ul class="status-guide">
+          <li><b>Pending Payment Review</b> — Receipt is waiting for checking.</li>
+          <li><b>Approved</b> — Payment has been confirmed.</li>
+          <li><b>Processing</b> — Delivery work has started.</li>
+          <li><b>Ready for Delivery</b> — Final delivery action is ready.</li>
+          <li><b>Completed</b> — Order is finished.</li>
+          <li><b>Declined</b> — Information or payment did not pass checking.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel tutorial-final">
+    <h2>Need help before paying?</h2>
+    <p>Open the FAQ or create an account and use private support. Never send a Roblox password, cookie, email verification code or two-step verification code.</p>
+    <div class="hero-actions"><a class="button primary" href="/#shop">Start an Order</a><a class="button secondary" href="faq.html">Open FAQ</a></div>
+  </section>
+</main>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("/service-worker.js").catch(() => {}));
+}
+</script>
+
+<script src="i18n.js" defer></script>
+<script src="install.js" defer></script>
+<script src="tutorial-media.js" defer></script>
+<script src="network.js" defer></script>
+<script src="connection-status.js" defer></script>
+<script src="account-state.js" defer></script>
+<script src="mobile-commerce-nav.js" defer></script>
+</body>
+</html>

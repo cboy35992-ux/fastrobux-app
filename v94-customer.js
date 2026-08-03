@@ -1,13 +1,23 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dashboard | RSR</title><link rel="stylesheet" href="style.css"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#8b5cf6"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<link rel="icon" type="image/png" href="/icons/favicon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Reck Shop">
-</head><body><header class="navbar"><a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>Dashboard</small></span></a><nav><a href="/">Shop</a><a href="dashboard.html">Messages <span id="unreadBadge" class="badge hidden">0</span></a><button id="logout" class="nav-button">Logout</button></nav></header><main class="container"><section class="dashboard-hero"><div><span class="eyebrow">CUSTOMER ACCOUNT</span><h1 id="welcome">Welcome</h1><p id="email" class="muted"></p></div><a class="button primary" href="/">Create New Order</a></section><section class="panel loyalty-card"><div><span class="eyebrow">LOYALTY PROFILE</span><h2 id="loyaltyTier">Bronze Member</h2><p id="loyaltyProgress" class="muted">Complete orders to unlock higher loyalty levels.</p></div><div class="loyalty-stats"><div><span>Total Purchased</span><b id="totalPurchased">₱0</b></div><div><span>Total Robux</span><b id="totalRobux">0</b></div></div></section><section class="stats-grid"><article><span>Total Orders</span><strong id="total">0</strong></article><article><span>Pending</span><strong id="pending">0</strong></article><article><span>Completed</span><strong id="completed">0</strong></article><article><span>Unread Messages</span><strong id="unread">0</strong></article></section><section class="panel"><div class="order-header"><div><h2>Order History</h2><p class="muted">Open an order to view its private receipt, timeline and support chat.</p></div><button id="refresh">Refresh</button></div><div id="orders" class="orders-list"></div><p id="message" class="message"></p></section></main><script src="dashboard.js"></script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script>
-<script src="i18n.js" defer></script>
-<script src="install.js" defer></script>
-<nav class="mobile-bottom-nav"><a href="/">Shop</a><a class="active" href="dashboard.html">Orders</a><a href="tutorial.html">Tutorial</a><a href="trust.html">Trust</a></nav><script src="v94-customer.js" defer></script>
-<script src="v10-customer.js" defer></script>
-<script src="network.js" defer></script>
-<script src="connection-status.js" defer></script>
-</body></html>
+(() => {
+  const RECOVERY_KEY = "rsr-v112-cache-recovered";
+  async function recover() {
+    if (!("serviceWorker" in navigator)) return;
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(registration => registration.unregister()));
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(key => caches.delete(key)));
+      }
+      if (!sessionStorage.getItem(RECOVERY_KEY)) {
+        sessionStorage.setItem(RECOVERY_KEY, "1");
+        const url = new URL(location.href);
+        url.searchParams.set("v", "16.0.0");
+        location.replace(url.toString());
+      }
+    } catch (error) {
+      console.warn("Cache recovery skipped:", error);
+    }
+  }
+  window.addEventListener("load", recover, { once:true });
+})();

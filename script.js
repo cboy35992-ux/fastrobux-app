@@ -1,1 +1,11 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Verify Email | Reck Shop</title><link rel="stylesheet" href="style.css"><meta name="theme-color" content="#8b5cf6"></head><body class="auth-body"><main class="container narrow auth-recovery"><section class="panel center-text"><div class="verification-icon">✉️</div><h1>Email verification</h1><p id="message" class="message">Connecting securely and verifying your email…</p><a id="loginLink" class="button primary hidden" href="auth.html">Continue to Login</a></section></main><script src="network.js" defer></script><script src="verify.js" defer></script><script src="i18n.js" defer></script></body></html>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Privacy Notice | RSR</title><link rel="stylesheet" href="style.css"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#8b5cf6"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/icons/favicon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Reck Shop">
+</head><body><header class="navbar"><a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>Privacy Notice</small></span></a></header><main class="container narrow"><section class="panel"><h1>Privacy Notice</h1><p>Reck Shop stores account details, order information, payment references, receipt images and support messages to operate the shop.</p><p>Passwords are hashed. Never submit a Roblox password, verification code or authentication cookie.</p><p>Receipts are private and should not include unnecessary personal or financial information.</p><p>Contact the administrator to request account or order-data deletion.</p></section></main><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script>
+<script src="i18n.js" defer></script>
+<script src="install.js" defer></script>
+<script src="network.js" defer></script>
+<script src="connection-status.js" defer></script>
+</body></html>

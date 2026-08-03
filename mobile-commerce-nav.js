@@ -16,20 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RSR Shop">
 </head>
-<body class="dedicated-shop-page">
+<body>
 <header class="navbar">
-  <a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>Secure Order Center</small></span></a>
-  <nav><span id="supportStatus" class="support online">● Support Online</span><a href="trust.html">Trust Center</a><a href="tutorial.html">How to Buy</a><a href="faq.html">FAQ</a><a id="accountLink" data-account-link href="auth.html">My Account</a><a href="support.html">Support</a></nav>
+  <a class="brand" href="/"><span class="logo">R</span><span><b>RECK SHOP</b><small>V16 Premium Shop</small></span></a>
+  <nav><span id="supportStatus" class="support online">● Support Online</span><a href="trust.html">Trust Center</a><a href="tutorial.html">How to Buy</a><a href="faq.html">FAQ</a><a id="accountLink" data-account-link href="auth.html">Login / Register</a></nav>
 </header>
-<div id="shopBanner" class="shop-banner hidden"></div><main class="container">
-
-
-<section class="shop-page-intro">
-  <a class="back-link" href="dashboard.html">← Back to Dashboard</a>
-  <span class="eyebrow">NEW ORDER</span>
-  <h1>Choose how you want to buy.</h1>
-  <p>Select one method, then complete each short step. Your progress stays separated so you do not need to scroll through one long form.</p>
-</section>
+<div id="shopBanner" class="shop-banner hidden"></div><div id="premiumAnnouncement" class="premium-announcement hidden"></div>
+<main class="container">
 
 <section id="storageTrustNotice" class="storage-trust-notice hidden" role="status">
   <div><b>⚠ Storage setup requires attention</b><span id="storageTrustText"></span></div>
@@ -73,6 +66,17 @@
   <div class="trust-cta"><a class="button primary" href="trust.html">Open Trust Center</a><a class="button secondary" href="faq.html">Read FAQ</a></div>
 </section>
 
+
+
+<section class="premium-method-showcase">
+  <div class="section-title"><span>✦</span><div><h2>Choose the right buying method</h2><p>Each option opens a focused step-by-step checkout.</p></div></div>
+  <div class="premium-method-cards">
+    <a href="shop.html?method=ct"><span>🛡️</span><b>Covered Tax</b><small>Receive the full selected Robux amount</small></a>
+    <a href="shop.html?method=nct"><span>💸</span><b>Not Covered Tax</b><small>Lower payment with Roblox tax deducted</small></a>
+    <a href="shop.html?method=instant"><span>⚡</span><b>Robux Instant</b><small>Faster processing using available stock</small></a>
+    <a href="shop.html?method=gifting"><span>🎁</span><b>In-Game Gifting</b><small>Supported game-item delivery</small></a>
+  </div>
+</section>
 
 <section class="panel tutorial-preview" data-tutorial-section>
   <div class="section-title"><span>?</span><div><h2>First time buying?</h2><p>Watch the video and follow the exact steps before paying.</p></div></div>
@@ -228,7 +232,7 @@
 <script src="account-state.js" defer></script>
 <script src="storage-status.js" defer></script>
 <script src="mobile-commerce-nav.js" defer></script>
-<script src="dedicated-shop.js" defer></script>
+<script src="premium-commerce.js" defer></script>
 
 <div id="orderSuccessModal" class="order-success-modal hidden" role="dialog" aria-modal="true" aria-labelledby="orderSuccessTitle">
   <div class="order-success-card">

@@ -1,1 +1,18 @@
-document.addEventListener("DOMContentLoaded",async()=>{const message=document.getElementById("message"),link=document.getElementById("loginLink"),token=new URLSearchParams(location.search).get("token");if(!token){message.className="message error";message.textContent="This verification link is incomplete.";return}try{await RSRNetwork.api("/api/auth/verify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token})},{retries:2});message.className="message success";message.textContent="Your email is verified. You can now log in.";link.classList.remove("hidden")}catch(error){message.className="message error";message.textContent=error.message}});
+(() => {
+  async function loadStatus() {
+    const notice=document.getElementById("storageTrustNotice");
+    if(!notice)return;
+    try{
+      const response=await fetch("/api/storage/status",{cache:"no-store"});
+      const status=await response.json();
+      if(status.mode==="temporary"){
+        notice.classList.remove("hidden");
+        document.getElementById("storageTrustText").textContent =
+          "The current free deployment uses temporary storage. Complete orders may not remain after a server restart.";
+      }else{
+        notice.classList.add("hidden");
+      }
+    }catch{}
+  }
+  document.addEventListener("DOMContentLoaded",loadStatus);
+})();

@@ -1,2 +1,25 @@
-"use strict";const $=id=>document.getElementById(id),token=(localStorage.getItem("rsrSession")||sessionStorage.getItem("rsrSession"));if(!token)location.href="auth.html";const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));async function api(url,options={}){options.headers={...(options.headers||{}),Authorization:`Bearer ${token}`};const r=await fetch(url,options),t=await r.text();let d;try{d=t?JSON.parse(t):{}}catch{throw new Error(`Invalid response (${r.status}).`)}if(r.status===401){localStorage.clear();location.href="auth.html";throw new Error("Session expired.")}if(!r.ok)throw new Error(d.error||`Request failed (${r.status}).`);return d}async function load(){try{const [me,o,u]=await Promise.all([api("/api/auth/me"),api("/api/customer/orders"),api("/api/customer/unread")]);$("welcome").textContent=`Welcome, ${me.user.fullName}`;$("email").textContent=me.user.email;const a=o.orders;$("total").textContent=a.length;$("pending").textContent=a.filter(x=>!["Completed","Declined","Reservation Expired"].includes(x.status)).length;$("completed").textContent=a.filter(x=>x.status==="Completed").length;$("unread").textContent=u.count;$("unreadBadge").textContent=u.count;$("unreadBadge").classList.toggle("hidden",!u.count);$("orders").innerHTML=a.length?a.map(x=>`<a class="order-row" href="order.html?order=${encodeURIComponent(x.orderNumber)}"><div><b>${esc(x.orderNumber)}</b><span>${esc(x.displayName)} (@${esc(x.username)})</span></div><div><b>${Number(x.amount).toLocaleString()} Robux</b><span>₱${Number(x.totalPayment).toFixed(2)}</span></div><span class="status-pill">${esc(x.status)}</span></a>`).join(""):'<p class="muted">No orders yet.</p>'}catch(e){$("message").className="message error";$("message").textContent=e.message}}$("refresh").onclick=load;$("logout").onclick=async()=>{try{await api("/api/auth/logout",{method:"POST"})}catch{}localStorage.clear();location.href="auth.html"};load();
-setInterval(load,15000);
+(() => {
+  const ORDER_STAGES=[
+    ["Pending Payment Review","Order submitted"],
+    ["Approved","Payment approved"],
+    ["Processing","Processing delivery"],
+    ["Ready for Delivery","Ready for confirmation"],
+    ["Completed","Completed"]
+  ];
+  function stageIndex(status){
+    if(status==="Declined"||status==="Cancelled")return -1;
+    const index=ORDER_STAGES.findIndex(([key])=>key===status);
+    return Math.max(0,index);
+  }
+  window.RSRCommerceTimeline={
+    render(order){
+      const current=stageIndex(order.status);
+      if(current<0)return `<div class="commerce-timeline declined"><b>${order.status}</b><span>Open support for more information.</span></div>`;
+      return `<div class="commerce-timeline">${ORDER_STAGES.map(([key,label],index)=>`
+        <div class="${index<current?"complete":index===current?"active":""}">
+          <span>${index<current?"✓":index+1}</span>
+          <div><b>${label}</b><small>${index===current?"Current step":index<current?"Completed":"Waiting"}</small></div>
+        </div>`).join("")}</div>`;
+    }
+  };
+})();

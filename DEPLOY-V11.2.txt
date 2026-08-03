@@ -1,31 +1,21 @@
-RSR SHOP V11.2 — CLEAN RENDER DEPLOYMENT
+RSR SHOP V14.1 — PRIVATE ADMIN ACCESS
 
-1. Replace the files in your GitHub repository with this ZIP's contents.
-2. Commit with: Fix homepage delivery and remove stale PWA cache
-3. Render settings:
-   Root Directory: blank
-   Build Command: yarn install
-   Start Command: node server.js
-   Health Check Path: /api/health
-4. Environment:
-   DATA_ROOT=/tmp/rsr-data
-   PUBLIC_BASE_URL=https://YOUR-SERVICE.onrender.com
-   SESSION_DAYS=30
-   SHORT_SESSION_HOURS=24
-   RESERVATION_MINUTES=30
-   EMAIL_ENABLED=false
-   ALLOW_DEV_EMAIL_LINKS=true
-   REQUIRE_EMAIL_VERIFICATION=false
-   ADMIN_KEY=generate a new private value
-   DISCORD_WEBHOOK_URL=generate a new webhook
-5. Deploy using Clear build cache & deploy.
-6. Test:
-   /api/health
-   /api/ping
-   /reset-cache
-   /index.html?v=11.2
-   /
-7. If the browser previously showed ERR_FAILED, open /reset-cache once.
+The admin page is no longer inside the public website and all customer-facing Admin links were removed.
 
-V11.2 explicitly serves / and /index.html, binds to 0.0.0.0, disables the old service worker,
-clears stale PWA caches, logs homepage requests, and preserves the separated order checkout.
+Render Environment Variable:
+ADMIN_PORTAL_PATH=choose-a-long-private-path
+
+Example:
+ADMIN_PORTAL_PATH=reck-ops-x7p4-private
+
+Then your admin URL is:
+https://YOUR-DOMAIN.onrender.com/reck-ops-x7p4-private
+
+/admin and /admin.html return Page not found.
+
+IMPORTANT:
+- The hidden URL is an extra privacy layer, not the main security control.
+- ADMIN_KEY is still required for every admin API action.
+- Use a new long ADMIN_KEY.
+- Do not share screenshots containing the hidden URL or ADMIN_KEY.
+- The configured admin path appears only in Render startup logs.
