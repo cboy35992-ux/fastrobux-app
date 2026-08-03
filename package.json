@@ -1,6 +1,6 @@
 {
   "name": "rsr-shop-v16-premium",
-  "version": "16.1.0",
+  "version": "16.2.0",
   "private": true,
   "description": "RSR Shop V16 premium responsive customer and admin dashboard",
   "main": "server.js",

@@ -489,7 +489,8 @@ const orderLimiter = rateLimit({ windowMs: 10 * 60 * 1000, limit: 30, standardHe
 const storage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, UPLOADS_DIR),
   filename: (_, file, cb) => {
-    const ext = file.mimetype === "image/png" ? ".png" : ".jpg";
+    const extensions = {"image/png":".png","image/jpeg":".jpg","image/webp":".webp","image/gif":".gif"};
+    const ext = extensions[file.mimetype] || ".img";
     cb(null, `${Date.now()}-${crypto.randomBytes(12).toString("hex")}${ext}`);
   }
 });
@@ -497,16 +498,16 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_, file, cb) => {
-    if (["image/png", "image/jpeg"].includes(file.mimetype)) return cb(null, true);
-    cb(new Error("Receipt must be PNG or JPG."));
+    if (["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.mimetype)) return cb(null, true);
+    cb(new Error("Receipt must be PNG, JPG, WEBP or GIF."));
   }
 });
 const proofUpload = multer({
   storage,
   limits: { fileSize: 8 * 1024 * 1024 },
   fileFilter: (_, file, cb) => {
-    if (["image/png", "image/jpeg"].includes(file.mimetype)) return cb(null, true);
-    cb(new Error("Proof image must be PNG or JPG."));
+    if (["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.mimetype)) return cb(null, true);
+    cb(new Error("Proof image must be PNG, JPG, WEBP or GIF."));
   }
 });
 
@@ -1466,6 +1467,8 @@ app.get("/api/order-message-images/:messageId",requireCustomer,(req,res)=>{
   const file=path.join(UPLOADS_DIR,message.image_filename);
   if(!fs.existsSync(file))return res.status(404).json({error:"Proof image file is unavailable."});
   res.set("Cache-Control","private, max-age=300");
+  res.set("X-Content-Type-Options","nosniff");
+  res.set("Content-Disposition",`inline; filename="${path.basename(file)}"`);
   res.type(message.image_mime||"image/jpeg");
   res.sendFile(file);
 });
@@ -1474,6 +1477,8 @@ app.get("/api/admin/order-message-images/:messageId",requireAdmin,(req,res)=>{
   if(!message||!message.image_filename)return res.status(404).json({error:"Proof image not found."});
   const file=path.join(UPLOADS_DIR,message.image_filename);
   if(!fs.existsSync(file))return res.status(404).json({error:"Proof image file is unavailable."});
+  res.set("X-Content-Type-Options","nosniff");
+  res.set("Content-Disposition",`inline; filename="${path.basename(file)}"`);
   res.type(message.image_mime||"image/jpeg");
   res.sendFile(file);
 });
@@ -1483,6 +1488,9 @@ app.get("/api/orders/:number/receipt",requireCustomer,(req,res)=>{
   if(!order)return res.status(404).json({error:"Order not found."});
   const file=path.join(UPLOADS_DIR,order.receipt_filename);
   if(!fs.existsSync(file))return res.status(404).json({error:"Receipt file is unavailable."});
+  res.set("Cache-Control","private, max-age=300");
+  res.set("X-Content-Type-Options","nosniff");
+  res.set("Content-Disposition",`inline; filename="${path.basename(file)}"`);
   res.sendFile(file);
 });
 
@@ -1513,10 +1521,12 @@ app.get("/api/reviews",(_,res)=>{
 app.get("/api/admin/orders",requireAdmin,(req,res)=>{
   releaseExpiredReservations();
   const status=String(req.query.status||"");
+  const method=String(req.query.method||"").trim();
   const search=String(req.query.search||"").trim();
   let sql="SELECT * FROM orders WHERE 1=1",params=[];
   if(status){sql+=" AND status=?";params.push(status);}
-  if(search){sql+=" AND (order_number LIKE ? OR username LIKE ? OR reference_number LIKE ?)";const q=`%${search}%`;params.push(q,q,q);}
+  if(method){sql+=" AND method=?";params.push(method);}
+  if(search){sql+=" AND (order_number LIKE ? OR username LIKE ? OR display_name LIKE ? OR reference_number LIKE ? OR game_name LIKE ? OR item_name LIKE ?)";const q=`%${search}%`;params.push(q,q,q,q,q,q);}
   sql+=" ORDER BY created_at DESC LIMIT 500";
   res.json({orders:db.prepare(sql).all(...params).map(row=>serializeOrder(row,true)),settings:settingsObject()});
 });
@@ -1537,6 +1547,9 @@ app.get("/api/admin/orders/:number/receipt",requireAdmin,(req,res)=>{
   if(!order)return res.status(404).json({error:"Order not found."});
   const file=path.join(UPLOADS_DIR,order.receipt_filename);
   if(!fs.existsSync(file))return res.status(404).json({error:"Receipt file is unavailable."});
+  res.set("Cache-Control","private, max-age=300");
+  res.set("X-Content-Type-Options","nosniff");
+  res.set("Content-Disposition",`inline; filename="${path.basename(file)}"`);
   res.sendFile(file);
 });
 
