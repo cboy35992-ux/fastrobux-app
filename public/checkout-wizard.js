@@ -80,7 +80,9 @@
       step.pane = pane;
     });
 
-    let active = "method";
+    const lockedMethod = new URLSearchParams(location.search).get("method");
+    const hasLockedMethod = ["ct","nct","instant","gifting"].includes(lockedMethod);
+    let active = hasLockedMethod ? "account" : "method";
     const normalOrder = ["method", "account", "gamepass", "payment"];
 
     const methodDescriptions = {
@@ -97,9 +99,8 @@
 
     const availableOrder = () => {
       const method = selectedMethodKey();
-      return ["ct", "nct"].includes(method)
-        ? normalOrder
-        : ["method", "account", "payment"];
+      const base = ["ct", "nct"].includes(method) ? normalOrder : ["method", "account", "payment"];
+      return hasLockedMethod ? base.filter(step=>step!=="method") : base;
     };
 
     const stepNumber = key => availableOrder().indexOf(key) + 1;
@@ -181,7 +182,7 @@
         methodNote.className="checkout-method-note";
         document.querySelector(".checkout-progress-copy")?.appendChild(methodNote);
       }
-      methodNote.textContent=selectedInfo?.note||"";
+      methodNote.textContent=(selectedInfo?.note||"") + (hasLockedMethod ? "  •  Choose a different method from the Change Method button." : "");
       $("checkoutStepCounter").textContent =
         `Step ${currentIndex + 1} of ${order.length}`;
       let purpose=document.getElementById("checkoutStepPurpose");

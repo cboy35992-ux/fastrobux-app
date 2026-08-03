@@ -1493,6 +1493,9 @@ app.get("/api/orders/:number/receipt",requireCustomer,(req,res)=>{
   if(!order.receipt_filename)return res.status(404).json({error:"This order uses a payment reference instead of a receipt photo."});
   const file=path.join(UPLOADS_DIR,order.receipt_filename);
   if(!fs.existsSync(file))return res.status(404).json({error:"Receipt file is unavailable."});
+  res.set("Cache-Control","private, no-store");
+  res.set("Content-Disposition","inline");
+  res.type(path.extname(file));
   res.sendFile(file);
 });
 
@@ -1547,7 +1550,10 @@ app.get("/api/admin/orders/:number/receipt",requireAdmin,(req,res)=>{
   if(!order)return res.status(404).json({error:"Order not found."});
   if(!order.receipt_filename)return res.status(404).json({error:"This order uses a payment reference instead of a receipt photo."});
   const file=path.join(UPLOADS_DIR,order.receipt_filename);
-  if(!fs.existsSync(file))return res.status(404).json({error:"Receipt file is unavailable."});
+  if(!fs.existsSync(file))return res.status(404).json({error:"Receipt file is unavailable. This usually means temporary storage was cleared after a redeploy."});
+  res.set("Cache-Control","private, no-store");
+  res.set("Content-Disposition","inline");
+  res.type(path.extname(file));
   res.sendFile(file);
 });
 

@@ -1,0 +1,11 @@
+RSR Shop V16.6 Final Fix
+
+- Fixed customer receipt opening by fetching the protected image with the customer session token.
+- Fixed admin and customer proof-image loading without direct unauthenticated image links.
+- Removed conflicting admin order enhancement scripts while preserving the original admin portal.
+- Added image timeout, retry, MIME validation, and direct preview behavior.
+- Reference-only orders hide receipt buttons and clearly show the reference instead.
+- Start Order now shows only the four order choices.
+- Choosing CT, NCT, Instant, or Gifting opens a dedicated step-by-step portal for that method.
+- Instant and Gifting skip the Game Pass step; CT and NCT require verification.
+- Mobile order flow remains focused and touch-friendly.

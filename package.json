@@ -1,6 +1,6 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "16.5.0",
+  "version": "16.6.0",
   "private": true,
   "description": "RSR Shop V14.1 Hidden Admin & Clear Order Workspace Edition with private configurable admin URL, no public admin links, clearer order-request workspace, sticky order inspector, and preserved separated customer checkout.",
   "main": "server.js",

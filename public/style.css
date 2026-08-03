@@ -320,3 +320,15 @@
 .receipt-local-preview img{width:104px;height:104px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.15)}
 .receipt-local-preview div{display:grid;gap:5px}.receipt-local-preview span,.proof-help{color:var(--muted,#94a3b8);font-size:13px}.receipt-local-preview button{width:max-content;margin-top:5px}
 @media(max-width:640px){.evidence-choice-grid{grid-template-columns:1fr}.evidence-option{min-height:82px}.receipt-local-preview{align-items:flex-start}.receipt-local-preview img{width:86px;height:86px}}
+/* V16.6 final focused order portal */
+.method-chooser main.container>section:not(.shop-page-intro):not(#checkoutWizard){display:none!important}
+.method-chooser #checkoutWizard .checkout-wizard-head,.method-chooser #checkoutWizard .checkout-step-tabs,.method-chooser #checkoutWizard .checkout-mobile-actions{display:none!important}
+.method-chooser #checkoutWizard{max-width:980px;margin:18px auto}
+.method-chooser #checkoutWizard [data-checkout-pane]:not([data-checkout-pane="method"]){display:none!important}
+.method-chooser #shop{display:block!important}
+.method-chooser .method-card{cursor:pointer}
+.method-chooser .method-card::after{content:"Choose this order →";display:block;margin-top:12px;color:#c4b5fd;font-weight:800}
+.method-selected #shop{display:none!important}
+.method-selected .checkout-step-tabs [data-checkout-step="method"]{display:none!important}
+.method-selected .checkout-wizard{margin-top:8px}
+@media(max-width:640px){.method-chooser .method-grid{grid-template-columns:1fr!important}.method-chooser .method-card{min-height:116px!important}.method-selected .shop-page-intro{padding:8px 2px 0}.method-selected .shop-page-intro h1{font-size:25px}}

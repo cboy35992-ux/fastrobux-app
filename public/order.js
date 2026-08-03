@@ -1,133 +1,63 @@
-"use strict";const $=id=>document.getElementById(id),token=(localStorage.getItem("rsrSession")||sessionStorage.getItem("rsrSession")),number=new URLSearchParams(location.search).get("order");if(!token)location.href="auth.html";const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));async function api(url,options={}){options.headers={...(options.headers||{}),Authorization:`Bearer ${token}`};const r=await fetch(url,options),t=await r.text();let d;try{d=t?JSON.parse(t):{}}catch{throw new Error(`Invalid response (${r.status}).`)}if(!r.ok)throw new Error(d.error||`Request failed (${r.status}).`);return d}async function load(){try{const d=await api(`/api/orders/${encodeURIComponent(number)}`);$("number").textContent=d.orderNumber;$("status").textContent=d.status;$("account").innerHTML=`<img src="${esc(d.avatarUrl)}"><div><b>${esc(d.displayName)}</b><span>@${esc(d.username)}</span></div>`;$("details").innerHTML=`<div><span>Method</span><b>${esc(d.method)}</b></div><div><span>Amount</span><b>${Number(d.amount).toLocaleString()} Robux</b></div><div><span>Total</span><b>₱${Number(d.totalPayment).toFixed(2)}</b></div><div><span>Payment</span><b>${esc(d.paymentMethod)}</b></div><div><span>Sender</span><b>${esc(d.senderName)}</b></div><div><span>Reference</span><b>${esc(d.referenceNumber)}</b></div>${d.gamePassUrl?`<div><span>Game Pass</span><b><a href="${esc(d.gamePassUrl)}" target="_blank" rel="noopener">Open buyer Game Pass (${Number(d.gamePassPrice).toLocaleString()} R$)</a></b></div>`:""}`;$("receiptLink").href=`/api/orders/${encodeURIComponent(number)}/receipt`;$("timeline").innerHTML=d.history.map(h=>`<div><span>✓</span><div><b>${esc(h.status)}</b><small>${new Date(h.created_at).toLocaleString()}</small></div></div>`).join("");renderMessages(d.messages);$("messages").scrollTop=$("messages").scrollHeight;$("reviewPanel").classList.toggle("hidden",d.status!=="Completed")}catch(e){$("message").className="message error";$("message").textContent=e.message}}$("send").onclick=async()=>{const text=$("chat").value.trim();if(!text)return;try{await api(`/api/orders/${encodeURIComponent(number)}/messages`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});$("chat").value="";load()}catch(e){alert(e.message)}};$("review").onclick=async()=>{try{await api(`/api/orders/${encodeURIComponent(number)}/review`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({rating:Number($("rating").value),comment:$("comment").value.trim()})});$("reviewMessage").className="message success";$("reviewMessage").textContent="Review submitted for approval."}catch(e){$("reviewMessage").className="message error";$("reviewMessage").textContent=e.message}};load();
-setInterval(load,10000);
-
-
-let lastMessageId=0;
-let realtimeTimer=null;
-const proofObjectUrls=new Map();
-
-function escapeHtml(value){
-  return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
-async function loadProtectedProof(messageId,img,link){
-  try{
-    const response=await fetch(`/api/order-message-images/${messageId}`,{
-      headers:{Authorization:`Bearer ${token}`},
-      cache:"no-store"
-    });
-    if(response.status===401){
-      location.href=`auth.html?returnTo=${encodeURIComponent(location.pathname+location.search)}`;
-      return;
-    }
-    if(!response.ok)throw new Error("Proof image unavailable.");
-    const blob=await response.blob();
-    const old=proofObjectUrls.get(messageId);
-    if(old)URL.revokeObjectURL(old);
-    const url=URL.createObjectURL(blob);
-    proofObjectUrls.set(messageId,url);
-    img.src=url;
-    link.href=url;
-    img.closest(".customer-proof-card")?.classList.remove("proof-loading");
-  }catch{
-    img.alt="Proof image unavailable";
-    img.closest(".customer-proof-card")?.classList.add("proof-error");
+"use strict";
+const $=id=>document.getElementById(id);
+const token=localStorage.getItem("rsrSession")||sessionStorage.getItem("rsrSession");
+const orderNumber=new URLSearchParams(location.search).get("order");
+if(!token) location.href=`auth.html?returnTo=${encodeURIComponent(location.pathname+location.search)}`;
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const objectUrls=new Map();
+async function request(url,options={}){
+  options.headers={...(options.headers||{}),Authorization:`Bearer ${token}`};
+  const r=await fetch(url,options);
+  const type=r.headers.get("content-type")||"";
+  if(type.startsWith("application/json")){
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||`Request failed (${r.status})`); return d;
   }
+  if(!r.ok) throw new Error(`Request failed (${r.status})`);
+  return r;
 }
-function messageHtml(m){
-  return `<div class="chat-message ${escapeHtml(m.sender)}" data-message-id="${Number(m.id)||0}">
-    <b>${escapeHtml(m.sender)}</b>
-    <p>${escapeHtml(m.text)}</p>
-    ${m.imageUrl?`<a class="customer-proof-card proof-loading" data-proof-link="${Number(m.id)}" target="_blank" rel="noopener">
-      <div class="proof-loader">Loading secure proof…</div>
-      <img data-proof-image="${Number(m.id)}" alt="${escapeHtml(m.imageCaption||"Robux delivery proof")}">
-      <span>📷 ${escapeHtml(m.imageCaption||"Open Robux delivery proof")}</span>
-    </a>`:""}
-    <small>${new Date(m.created_at).toLocaleString()}</small>
-  </div>`;
+async function protectedImage(url,key){
+  const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),15000);
+  try{
+    const r=await fetch(url,{headers:{Authorization:`Bearer ${token}`},cache:"no-store",signal:controller.signal});
+    const type=r.headers.get("content-type")||"";
+    if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.error||"Image unavailable");}
+    if(!type.startsWith("image/")) throw new Error("Invalid image response");
+    const old=objectUrls.get(key); if(old) URL.revokeObjectURL(old);
+    const blobUrl=URL.createObjectURL(await r.blob()); objectUrls.set(key,blobUrl); return blobUrl;
+  } finally { clearTimeout(timer); }
 }
-function bindProofs(container){
-  container.querySelectorAll("[data-proof-image]").forEach(img=>{
-    const id=Number(img.dataset.proofImage);
-    const link=container.querySelector(`[data-proof-link="${id}"]`);
-    if(link&&!img.src)loadProtectedProof(id,img,link);
-  });
+async function openReceipt(e){
+  e.preventDefault();
+  const link=$("receiptLink");
+  link.textContent="Opening receipt…"; link.classList.add("disabled");
+  try{const u=await protectedImage(`/api/orders/${encodeURIComponent(orderNumber)}/receipt`,`receipt-${orderNumber}`);window.open(u,"_blank","noopener");}
+  catch(err){alert(err.name==="AbortError"?"Receipt took too long to load. Please try again.":err.message);}
+  finally{link.textContent="Open My Receipt";link.classList.remove("disabled");}
+}
+async function loadProof(messageId,img,card){
+  if(img.dataset.loaded==="1") return; img.dataset.loaded="1";
+  try{const u=await protectedImage(`/api/order-message-images/${messageId}`,`proof-${messageId}`);img.src=u;card.href=u;card.classList.remove("proof-loading","proof-error");card.querySelector(".proof-loader")?.remove();}
+  catch(err){img.dataset.loaded="0";card.classList.remove("proof-loading");card.classList.add("proof-error");const loader=card.querySelector(".proof-loader");if(loader)loader.textContent=err.name==="AbortError"?"Image timed out — tap to retry":"Image unavailable — tap to retry";card.onclick=ev=>{ev.preventDefault();loadProof(messageId,img,card);};}
 }
 function renderMessages(messages){
   const box=$("messages");
-  box.innerHTML=(messages||[]).map(messageHtml).join("");
-  lastMessageId=Math.max(0,...(messages||[]).map(m=>Number(m.id)||0));
-  bindProofs(box);
+  box.innerHTML=(messages||[]).map(m=>`<div class="chat-message ${esc(m.sender)}"><b>${esc(m.sender)}</b><p>${esc(m.text)}</p>${m.imageUrl?`<a class="customer-proof-card proof-loading" data-proof-card="${Number(m.id)}" target="_blank" rel="noopener"><div class="proof-loader">Loading image…</div><img data-proof-image="${Number(m.id)}" alt="${esc(m.imageCaption||"Delivery proof")}"><span>📷 ${esc(m.imageCaption||"Open delivery proof")}</span></a>`:""}<small>${new Date(m.created_at).toLocaleString()}</small></div>`).join("");
+  box.querySelectorAll("[data-proof-card]").forEach(card=>{const id=Number(card.dataset.proofCard),img=card.querySelector("img");loadProof(id,img,card);});
 }
-function appendMessages(messages){
-  const box=$("messages");
-  for(const m of messages||[]){
-    if(box.querySelector(`[data-message-id="${Number(m.id)}"]`))continue;
-    box.insertAdjacentHTML("beforeend",messageHtml(m));
-    lastMessageId=Math.max(lastMessageId,Number(m.id)||0);
-  }
-  bindProofs(box);
-  if(messages?.length)box.scrollTop=box.scrollHeight;
-}
-async function realtimeTick(){
-  if(document.hidden||!orderNumber)return;
+async function load(){
+  if(!orderNumber){$("message").textContent="Order number is missing.";return;}
   try{
-    const response=await fetch(`/api/orders/${encodeURIComponent(orderNumber)}/realtime?after=${lastMessageId}`,{
-      headers:{Authorization:`Bearer ${token}`},cache:"no-store"
-    });
-    if(response.status===401){location.href=`auth.html?returnTo=${encodeURIComponent(location.pathname+location.search)}`;return}
-    if(!response.ok)return;
-    const data=await response.json();
-    appendMessages(data.messages);
-    if(data.status&&window.currentOrderStatus!==data.status){
-      window.currentOrderStatus=data.status;
-      const statusEl=$("status");
-      if(statusEl)statusEl.textContent=data.status;
-      updateConfirmButton(data.status);
-    }
-  }catch{}
+    const d=await request(`/api/orders/${encodeURIComponent(orderNumber)}`);
+    $("number").textContent=d.orderNumber;$("status").textContent=d.status;
+    $("account").innerHTML=`<img src="${esc(d.avatarUrl)}"><div><b>${esc(d.displayName)}</b><span>@${esc(d.username)}</span></div>`;
+    const proof=d.hasReceipt?"Receipt photo":`Reference: ${esc(d.referenceNumber||"Not provided")}`;
+    $("details").innerHTML=`<div><span>Method</span><b>${esc(d.method)}</b></div><div><span>Amount</span><b>${Number(d.amount).toLocaleString()} Robux</b></div><div><span>Total</span><b>₱${Number(d.totalPayment).toFixed(2)}</b></div><div><span>Payment</span><b>${esc(d.paymentMethod)}</b></div><div><span>Sender</span><b>${esc(d.senderName)}</b></div><div><span>Payment Proof</span><b>${proof}</b></div>${d.gamePassUrl?`<div><span>Game Pass</span><b><a href="${esc(d.gamePassUrl)}" target="_blank" rel="noopener">Open Game Pass (${Number(d.gamePassPrice).toLocaleString()} R$)</a></b></div>`:""}`;
+    const receipt=$("receiptLink");receipt.hidden=!d.hasReceipt;receipt.onclick=d.hasReceipt?openReceipt:null;
+    $("timeline").innerHTML=(d.history||[]).map(h=>`<div><span>✓</span><div><b>${esc(h.status)}</b><small>${new Date(h.created_at).toLocaleString()}</small></div></div>`).join("");
+    renderMessages(d.messages);$("messages").scrollTop=$("messages").scrollHeight;$("reviewPanel").classList.toggle("hidden",d.status!=="Completed");
+  }catch(e){$("message").className="message error";$("message").textContent=e.message;}
 }
-function updateConfirmButton(status){
-  let button=$("confirmDeliveryButton");
-  if(["Ready for Delivery","Completed"].includes(status)){
-    if(!button){
-      button=document.createElement("button");
-      button.id="confirmDeliveryButton";
-      button.className="button success full";
-      button.textContent="✓ Confirm Robux Received";
-      button.onclick=confirmDelivery;
-      $("messages")?.insertAdjacentElement("afterend",button);
-    }
-    button.disabled=status==="Completed";
-    button.textContent=status==="Completed"?"✓ Delivery Confirmed":"✓ Confirm Robux Received";
-  }else button?.remove();
-}
-async function confirmDelivery(){
-  if(!confirm("Confirm that you received the Robux for this order?"))return;
-  const button=$("confirmDeliveryButton");
-  button.disabled=true;button.textContent="Confirming…";
-  try{
-    const response=await fetch(`/api/orders/${encodeURIComponent(orderNumber)}/confirm-delivery`,{
-      method:"POST",headers:{Authorization:`Bearer ${token}`}
-    });
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok)throw new Error(data.error||"Confirmation failed.");
-    updateConfirmButton("Completed");
-    realtimeTick();
-  }catch(error){
-    alert(error.message);
-    button.disabled=false;button.textContent="✓ Confirm Robux Received";
-  }
-}
-window.addEventListener("beforeunload",()=>proofObjectUrls.forEach(url=>URL.revokeObjectURL(url)));
-document.addEventListener("visibilitychange",()=>{if(!document.hidden)realtimeTick()});
-
-window.addEventListener("load",()=>{
-  setTimeout(()=>{
-    const statusText=document.getElementById("status")?.textContent||"";
-    window.currentOrderStatus=statusText;
-    updateConfirmButton(statusText);
-    clearInterval(realtimeTimer);
-    realtimeTimer=setInterval(realtimeTick,3000);
-    realtimeTick();
-  },800);
-});
+$("send").onclick=async()=>{const text=$("chat").value.trim();if(!text)return;try{await request(`/api/orders/${encodeURIComponent(orderNumber)}/messages`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});$("chat").value="";await load();}catch(e){alert(e.message)}};
+$("review").onclick=async()=>{try{await request(`/api/orders/${encodeURIComponent(orderNumber)}/review`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({rating:Number($("rating").value),comment:$("comment").value.trim()})});$("reviewMessage").className="message success";$("reviewMessage").textContent="Review submitted for approval.";}catch(e){$("reviewMessage").className="message error";$("reviewMessage").textContent=e.message;}};
+load();setInterval(()=>{if(!document.hidden)load();},10000);
+window.addEventListener("beforeunload",()=>objectUrls.forEach(URL.revokeObjectURL));
