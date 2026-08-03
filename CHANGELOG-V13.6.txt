@@ -1,0 +1,23 @@
+RSR SHOP V13.6 — ORDER SUCCESS & DELIVERY PROOF
+
+CUSTOMER
+- Professional success popup immediately after a successful order submission.
+- Displays order number, usual initial review guidance of 1–10 minutes, and the selected method ETA.
+- Direct button opens the newly created private order page.
+- Warns customers not to reuse the same receipt.
+- Private order chat now displays admin-sent proof images.
+
+ADMIN
+- Admin can attach a PNG/JPG image to a private order message.
+- Optional proof caption.
+- Image preview and remove control before sending.
+- Maximum proof-image size: 8 MB.
+- Customers receive a notification when proof is sent.
+- Admin can reopen proof images from order chat.
+- Intended for genuine successful Robux-delivery screenshots or other order-specific proof.
+
+SECURITY
+- Proof images are not public static links.
+- Customers can only access proof images connected to their own authenticated order.
+- Admin proof-image access requires the admin key.
+- Existing receipt, order, authentication, support, translation, backup and separated-checkout features remain preserved.

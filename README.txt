@@ -250,3 +250,7 @@ Logged-in customers start from dashboard.html and choose CT, NCT, Instant or Gif
 
 V13.5 PREMIUM COMMERCE
 New pages: support.html and profile.html. Admin can manage announcements and support tickets. Separated checkout remains unchanged.
+
+
+V13.6 ORDER SUCCESS & PROOF
+After successful submission, customers see a confirmation popup. Admin can send private PNG/JPG delivery proof through the order chat.

@@ -55,7 +55,19 @@ $("submitOrder").onclick=async()=>{
   const fields={methodKey:selectedMethod,amount:c.amount,promoCode:appliedPromo,paymentMethod:paymentMethod(),senderName:$("senderName").value.trim(),referenceNumber:$("referenceNumber").value.trim(),robloxUserId:selectedRoblox.userId,username:selectedRoblox.username,robloxUsername:selectedRoblox.username,robloxDisplayName:selectedRoblox.displayName,robloxAvatarUrl:selectedRoblox.avatarUrl,gameName:$("gameName").value.trim(),itemName:$("itemName").value.trim(),gamePassLink:["ct","nct"].includes(selectedMethod)?$("gamepassLink").value.trim():"",gamePassId:verifiedGamePassData?.gamePass?.id||""};
   Object.entries(fields).forEach(([k,v])=>form.append(k,v));form.append("receipt",receipt);
   const b=$("submitOrder");b.disabled=true;b.textContent="Submitting…";
-  try{const d=await api("/api/orders",{method:"POST",body:form});msg.className="message success";msg.innerHTML=`Order created: <b>${d.orderNumber}</b><br>The Roblox username and Game Pass link were sent with the order.<br><a href="dashboard.html">Open your dashboard</a>`;cfg=await api("/api/settings");$("stockDisplay").textContent=`${num(cfg.instantStock)} Robux`}catch(e){fail(e.message)}finally{b.disabled=false;b.textContent="Submit Order"}
+  try{
+    const d=await api("/api/orders",{method:"POST",body:form});
+    msg.className="message success";
+    msg.innerHTML=`Order created successfully: <b>${d.orderNumber}</b>`;
+    $("successOrderNumber").textContent=d.orderNumber;
+    const selectedEta=cfg?.delivery?.[selectedMethod]||"Please check your order dashboard";
+    $("successMethodEta").textContent=selectedEta;
+    $("successOpenOrder").href=`order.html?order=${encodeURIComponent(d.orderNumber)}`;
+    $("orderSuccessModal").classList.remove("hidden");
+    document.body.classList.add("modal-open");
+    cfg=await api("/api/settings");
+    $("stockDisplay").textContent=`${num(cfg.instantStock)} Robux`;
+  }catch(e){fail(e.message)}finally{b.disabled=false;b.textContent="Submit Order"}
 };
 
 async function loadReviews(){try{const d=await api("/api/reviews");$("reviews").innerHTML=d.reviews.length?d.reviews.map(r=>`<article class="review-card"><div class="stars">${"★".repeat(r.rating)}${"☆".repeat(5-r.rating)}</div><p>${escapeHtml(r.comment)}</p><b>${escapeHtml(r.full_name)}</b><small class="muted">${escapeHtml(r.method)}</small></article>`).join(""):'<p class="muted">No published reviews yet.</p>'}catch{$("reviews").innerHTML='<p class="muted">Reviews are temporarily unavailable.</p>'}}

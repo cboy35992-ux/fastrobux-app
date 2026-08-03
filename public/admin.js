@@ -16,7 +16,8 @@ $("tutorialTitle").value=s.tutorial?.title||"How to Create a Roblox Game Pass";
 $("tutorialVideoUrl").value=s.tutorial?.videoUrl||"";
 $("tutorialVideoEnabled").checked=s.tutorial?.enabled!==false;
 $("languageDefault").value=s.language?.default||"en";
-$("languageAutoDetect").checked=s.language?.autoDetect!==false;$("orders").innerHTML=d.orders.map(o=>`<button class="order-row" data-order="${esc(o.orderNumber)}"><div><b>${esc(o.orderNumber)}</b><span>${esc(o.displayName)} (@${esc(o.username)})</span></div><div><b>${Number(o.amount).toLocaleString()} Robux</b><span>₱${Number(o.totalPayment).toFixed(2)}</span></div><span class="status-pill">${esc(o.status)}</span></button>`).join("")||'<p class="muted">No matching orders.</p>';document.querySelectorAll("[data-order]").forEach(b=>b.onclick=()=>openOrder(b.dataset.order))}async function openOrder(n){selected=window.selected=await api(`/api/admin/orders/${encodeURIComponent(n)}`);$("selectedPanel").classList.remove("hidden");$("selectedNumber").textContent=selected.orderNumber;$("selectedStatus").textContent=selected.status;$("adminReceipt").href=`/api/admin/orders/${encodeURIComponent(n)}/receipt`;$("adminReceipt").onclick=e=>{e.preventDefault();fetch($("adminReceipt").href,{headers:{"x-admin-key":key}}).then(r=>r.blob()).then(b=>window.open(URL.createObjectURL(b)))};$("selectedDetails").innerHTML=`<div><span>Roblox</span><b>${esc(selected.displayName)} (@${esc(selected.username)})</b></div><div><span>Method</span><b>${esc(selected.method)}</b></div><div><span>Amount</span><b>${Number(selected.amount).toLocaleString()} Robux</b></div><div><span>Total</span><b>₱${Number(selected.totalPayment).toFixed(2)}</b></div><div><span>Sender</span><b>${esc(selected.senderName)}</b></div><div><span>Reference</span><b>${esc(selected.referenceNumber)}</b></div>${selected.gamePassUrl?`<div><span>Buyer Game Pass</span><b><a href="${esc(selected.gamePassUrl)}" target="_blank" rel="noopener">Open Game Pass — ${Number(selected.gamePassPrice).toLocaleString()} Robux</a></b></div>`:""}`;$("adminMessages").innerHTML=selected.messages.map(m=>`<div class="chat-message ${esc(m.sender)}"><b>${esc(m.sender)}</b><p>${esc(m.text)}</p><small>${new Date(m.created_at).toLocaleString()}</small></div>`).join("");$("adminMessages").scrollTop=$("adminMessages").scrollHeight;unread()}async function analytics(){
+$("languageAutoDetect").checked=s.language?.autoDetect!==false;$("orders").innerHTML=d.orders.map(o=>`<button class="order-row" data-order="${esc(o.orderNumber)}"><div><b>${esc(o.orderNumber)}</b><span>${esc(o.displayName)} (@${esc(o.username)})</span></div><div><b>${Number(o.amount).toLocaleString()} Robux</b><span>₱${Number(o.totalPayment).toFixed(2)}</span></div><span class="status-pill">${esc(o.status)}</span></button>`).join("")||'<p class="muted">No matching orders.</p>';document.querySelectorAll("[data-order]").forEach(b=>b.onclick=()=>openOrder(b.dataset.order))}async function openOrder(n){selected=window.selected=await api(`/api/admin/orders/${encodeURIComponent(n)}`);$("selectedPanel").classList.remove("hidden");$("selectedNumber").textContent=selected.orderNumber;$("selectedStatus").textContent=selected.status;$("adminReceipt").href=`/api/admin/orders/${encodeURIComponent(n)}/receipt`;$("adminReceipt").onclick=e=>{e.preventDefault();fetch($("adminReceipt").href,{headers:{"x-admin-key":key}}).then(r=>r.blob()).then(b=>window.open(URL.createObjectURL(b)))};$("selectedDetails").innerHTML=`<div><span>Roblox</span><b>${esc(selected.displayName)} (@${esc(selected.username)})</b></div><div><span>Method</span><b>${esc(selected.method)}</b></div><div><span>Amount</span><b>${Number(selected.amount).toLocaleString()} Robux</b></div><div><span>Total</span><b>₱${Number(selected.totalPayment).toFixed(2)}</b></div><div><span>Sender</span><b>${esc(selected.senderName)}</b></div><div><span>Reference</span><b>${esc(selected.referenceNumber)}</b></div>${selected.gamePassUrl?`<div><span>Buyer Game Pass</span><b><a href="${esc(selected.gamePassUrl)}" target="_blank" rel="noopener">Open Game Pass — ${Number(selected.gamePassPrice).toLocaleString()} Robux</a></b></div>`:""}`;$("adminMessages").innerHTML=selected.messages.map(m=>`<div class="chat-message ${esc(m.sender)}"><b>${esc(m.sender)}</b><p>${esc(m.text)}</p>${m.imageUrl?`<button class="proof-image-button" data-proof-id="${Number(m.id)}"><img src="/api/admin/order-message-images/${Number(m.id)}" alt="${esc(m.imageCaption||"Order proof image")}"><span>${esc(m.imageCaption||"Open delivery proof")}</span></button>`:""}<small>${new Date(m.created_at).toLocaleString()}</small></div>`).join("");
+document.querySelectorAll("[data-proof-id]").forEach(button=>button.onclick=async()=>{const response=await fetch(`/api/admin/order-message-images/${button.dataset.proofId}`,{headers:{"x-admin-key":key}});if(!response.ok)return alert("Proof image unavailable.");const blob=await response.blob();window.open(URL.createObjectURL(blob),"_blank")});$("adminMessages").scrollTop=$("adminMessages").scrollHeight;unread()}async function analytics(){
   const d=await api("/api/admin/analytics");
   $("totalOrders").textContent=d.totals.orders;
   $("pendingOrders").textContent=d.totals.pending||0;
@@ -84,3 +85,44 @@ $("saveTutorialSettings").onclick=async()=>{
 };
 
 window.openOrder=openOrder;
+
+
+const adminProofInput=$("adminProofImage");
+if(adminProofInput){
+  adminProofInput.onchange=()=>{
+    const file=adminProofInput.files?.[0];
+    $("adminProofPreview").classList.toggle("hidden",!file);
+    if(file){
+      $("adminProofPreviewImage").src=URL.createObjectURL(file);
+      $("adminProofFileName").textContent=file.name;
+    }
+  };
+  $("removeAdminProof").onclick=()=>{
+    adminProofInput.value="";
+    $("adminProofPreview").classList.add("hidden");
+    $("adminProofPreviewImage").removeAttribute("src");
+    $("adminProofFileName").textContent="";
+  };
+  $("adminSendProof").onclick=async()=>{
+    if(!selected)return alert("Open an order first.");
+    const file=adminProofInput.files?.[0];
+    if(!file)return alert("Choose a PNG or JPG proof image first.");
+    if(file.size>8*1024*1024)return alert("Proof image must be smaller than 8 MB.");
+    const form=new FormData();
+    form.append("image",file);
+    form.append("caption",$("adminProofCaption").value.trim());
+    form.append("text",$("adminChat").value.trim()||"Robux delivery proof attached. Please review the image below.");
+    const button=$("adminSendProof");
+    button.disabled=true;button.textContent="Sending proof…";
+    try{
+      const response=await fetch(`/api/admin/orders/${encodeURIComponent(selected.orderNumber)}/messages`,{method:"POST",headers:{"x-admin-key":key},body:form});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.error||"Proof upload failed.");
+      adminProofInput.value="";$("adminProofCaption").value="";$("adminChat").value="";
+      $("adminProofPreview").classList.add("hidden");$("adminProofPreviewImage").removeAttribute("src");
+      await openOrder(selected.orderNumber);
+      alert("Image proof sent to the customer.");
+    }catch(error){alert(error.message)}
+    finally{button.disabled=false;button.textContent="Send Image Proof to Customer"}
+  };
+}

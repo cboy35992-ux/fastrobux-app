@@ -317,6 +317,17 @@ CREATE INDEX IF NOT EXISTS idx_site_events_type ON site_events(event_type, creat
 
 
 
+
+// V13.6: optional proof-image attachments in private order messages.
+const v136MessageColumns = new Set(db.prepare("PRAGMA table_info(messages)").all().map(c=>c.name));
+for (const [column,type] of [
+  ["image_filename","TEXT"],
+  ["image_mime","TEXT"],
+  ["image_caption","TEXT"]
+]) {
+  if (!v136MessageColumns.has(column)) db.exec(`ALTER TABLE messages ADD COLUMN ${column} ${type}`);
+}
+
 // V11: optional social-login identity columns.
 const v11UserColumns = new Set(db.prepare("PRAGMA table_info(users)").all().map(c=>c.name));
 for (const [column,type] of [
@@ -469,6 +480,14 @@ const upload = multer({
     cb(new Error("Receipt must be PNG or JPG."));
   }
 });
+const proofUpload = multer({
+  storage,
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (_, file, cb) => {
+    if (["image/png", "image/jpeg"].includes(file.mimetype)) return cb(null, true);
+    cb(new Error("Proof image must be PNG or JPG."));
+  }
+});
 
 function nowIso() { return new Date().toISOString(); }
 function hashToken(token) { return crypto.createHash("sha256").update(String(token)).digest("hex"); }
@@ -582,6 +601,18 @@ function notifyUser(userId, orderId, type, title, message) {
 function templateFor(key) { return db.prepare("SELECT * FROM message_templates WHERE key=?").get(key) || null; }
 function receiptHash(filePath) { return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex"); }
 
+
+function orderMessages(orderId){
+  return db.prepare(`SELECT id,sender_type AS sender,text,image_filename,image_mime,image_caption,created_at
+    FROM messages WHERE order_id=? ORDER BY id`).all(orderId).map(row=>({
+      id:row.id,
+      sender:row.sender,
+      text:row.text,
+      imageUrl:row.image_filename?`/api/order-message-images/${row.id}`:null,
+      imageCaption:row.image_caption||"",
+      created_at:row.created_at
+    }));
+}
 function ticketForCustomer(id,customerId){
   return db.prepare("SELECT * FROM support_tickets WHERE id=? AND customer_id=?").get(id,customerId);
 }
@@ -924,7 +955,7 @@ app.get("/api/health",async(_,res)=>{
   const ok=databaseOk;
   res.status(ok?200:503).json({
     ok,
-    version:"V13.5 Premium Commerce Edition",
+    version:"V13.6 Order Success & Proof Edition",
     server:"online",
     database:databaseOk?"online":"unavailable",
     email:{enabled:EMAIL_ENABLED,online:emailOk,message:emailMessage},
@@ -1358,7 +1389,7 @@ app.get("/api/orders/:number",requireCustomer,(req,res)=>{
   if(!order)return res.status(404).json({error:"Order not found."});
   db.prepare("UPDATE messages SET customer_read=1 WHERE order_id=? AND sender_type='admin'").run(order.id);
   const history=db.prepare("SELECT status,created_at FROM order_history WHERE order_id=? ORDER BY id").all(order.id);
-  const messages=db.prepare("SELECT id,sender_type AS sender,text,created_at FROM messages WHERE order_id=? ORDER BY id").all(order.id);
+  const messages=orderMessages(order.id);
   res.json({...serializeOrder(order,true),history,messages});
 });
 
@@ -1366,7 +1397,7 @@ app.get("/api/private/orders/:number",(req,res)=>{
   const order=orderForPrivateToken(req.params.number,String(req.query.token||""));
   if(!order)return res.status(404).json({error:"Wrong order number or private token."});
   const history=db.prepare("SELECT status,created_at FROM order_history WHERE order_id=? ORDER BY id").all(order.id);
-  const messages=db.prepare("SELECT id,sender_type AS sender,text,created_at FROM messages WHERE order_id=? ORDER BY id").all(order.id);
+  const messages=orderMessages(order.id);
   res.json({...serializeOrder(order,false),history,messages});
 });
 
@@ -1386,6 +1417,25 @@ app.get("/api/customer/unread",requireCustomer,(req,res)=>{
     WHERE o.customer_id=? AND m.sender_type='admin' AND m.customer_read=0
   `).get(req.customer.id).count;
   res.json({count});
+});
+
+
+app.get("/api/order-message-images/:messageId",requireCustomer,(req,res)=>{
+  const message=db.prepare(`SELECT m.*,o.customer_id FROM messages m JOIN orders o ON o.id=m.order_id WHERE m.id=?`).get(Number(req.params.messageId));
+  if(!message||message.customer_id!==req.customer.id||!message.image_filename)return res.status(404).json({error:"Proof image not found."});
+  const file=path.join(UPLOADS_DIR,message.image_filename);
+  if(!fs.existsSync(file))return res.status(404).json({error:"Proof image file is unavailable."});
+  res.set("Cache-Control","private, max-age=300");
+  res.type(message.image_mime||"image/jpeg");
+  res.sendFile(file);
+});
+app.get("/api/admin/order-message-images/:messageId",requireAdmin,(req,res)=>{
+  const message=db.prepare("SELECT * FROM messages WHERE id=?").get(Number(req.params.messageId));
+  if(!message||!message.image_filename)return res.status(404).json({error:"Proof image not found."});
+  const file=path.join(UPLOADS_DIR,message.image_filename);
+  if(!fs.existsSync(file))return res.status(404).json({error:"Proof image file is unavailable."});
+  res.type(message.image_mime||"image/jpeg");
+  res.sendFile(file);
 });
 
 app.get("/api/orders/:number/receipt",requireCustomer,(req,res)=>{
@@ -1436,7 +1486,7 @@ app.get("/api/admin/orders/:number",requireAdmin,(req,res)=>{
   if(!order)return res.status(404).json({error:"Order not found."});
   db.prepare("UPDATE messages SET admin_read=1 WHERE order_id=? AND sender_type='customer'").run(order.id);
   const history=db.prepare("SELECT status,created_at FROM order_history WHERE order_id=? ORDER BY id").all(order.id);
-  const messages=db.prepare("SELECT id,sender_type AS sender,text,created_at FROM messages WHERE order_id=? ORDER BY id").all(order.id);
+  const messages=orderMessages(order.id);
   const notes=db.prepare("SELECT id,note,created_at FROM admin_notes WHERE order_id=? ORDER BY id DESC").all(order.id);
   const disputes=db.prepare("SELECT * FROM disputes WHERE order_id=? ORDER BY created_at DESC").all(order.id);
   res.json({...serializeOrder(order,true),history,messages,notes,disputes});
@@ -1450,14 +1500,24 @@ app.get("/api/admin/orders/:number/receipt",requireAdmin,(req,res)=>{
   res.sendFile(file);
 });
 
-app.post("/api/admin/orders/:number/messages",requireAdmin,(req,res)=>{
+app.post("/api/admin/orders/:number/messages",requireAdmin,proofUpload.single("image"),(req,res)=>{
   const order=db.prepare("SELECT * FROM orders WHERE order_number=?").get(req.params.number);
-  if(!order)return res.status(404).json({error:"Order not found."});
+  if(!order){
+    if(req.file?.path&&fs.existsSync(req.file.path))fs.unlinkSync(req.file.path);
+    return res.status(404).json({error:"Order not found."});
+  }
   const text=String(req.body.text||"").trim().slice(0,1200);
-  if(!text)return res.status(400).json({error:"Message is empty."});
-  db.prepare("INSERT INTO messages(order_id,sender_type,text,customer_read,admin_read,created_at) VALUES (?,?,?,?,?,?)")
-    .run(order.id,"admin",text,0,1,nowIso());
-  res.json({ok:true});
+  const caption=String(req.body.caption||"").trim().slice(0,300);
+  if(!text&&!req.file)return res.status(400).json({error:"Enter a message or attach a proof image."});
+  const defaultText=req.file&&!text?"Robux delivery proof attached. Please review the image below.":text;
+  const result=db.prepare(`INSERT INTO messages(order_id,sender_type,text,image_filename,image_mime,image_caption,customer_read,admin_read,created_at)
+    VALUES (?,?,?,?,?,?,?,?,?)`).run(
+      order.id,"admin",defaultText,req.file?.filename||null,req.file?.mimetype||null,caption||null,0,1,nowIso()
+    );
+  notifyUser(order.customer_id,order.id,"support",req.file?"Delivery proof received":"New admin message",
+    req.file?"Reck Shop sent an image proof for your order.":defaultText);
+  audit(req.file?"order_proof_sent":"admin_order_message_sent",`${order.order_number}: message ${result.lastInsertRowid}`);
+  res.json({ok:true,messageId:result.lastInsertRowid});
 });
 
 app.patch("/api/admin/orders/:number/status",requireAdmin,(req,res)=>{
@@ -1953,13 +2013,13 @@ app.get("*",(req,res)=>{
 
 app.use((error,_,res,__)=>{
   console.error(error);
-  if(error instanceof multer.MulterError)return res.status(400).json({error:error.code==="LIMIT_FILE_SIZE"?"Receipt must be smaller than 5 MB.":error.message});
+  if(error instanceof multer.MulterError)return res.status(400).json({error:error.code==="LIMIT_FILE_SIZE"?"Uploaded image is too large. Receipt limit is 5 MB; proof-image limit is 8 MB.":error.message});
   res.status(500).json({error:error.message||"Server error."});
 });
 
 const HOST = process.env.HOST || "0.0.0.0";
 const server = app.listen(PORT, HOST, ()=>{
-  console.log(`RSR Shop V13.5 Premium Commerce Edition listening on http://${HOST}:${PORT}`);
+  console.log(`RSR Shop V13.6 Order Success & Proof Edition listening on http://${HOST}:${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
   console.log(`Homepage file: ${INDEX_FILE} (${fs.existsSync(INDEX_FILE) ? "found" : "MISSING"})`);

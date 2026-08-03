@@ -229,4 +229,24 @@
 <script src="storage-status.js" defer></script>
 <script src="mobile-commerce-nav.js" defer></script>
 <script src="dedicated-shop.js" defer></script>
+
+<div id="orderSuccessModal" class="order-success-modal hidden" role="dialog" aria-modal="true" aria-labelledby="orderSuccessTitle">
+  <div class="order-success-card">
+    <div class="order-success-icon">✓</div>
+    <span class="eyebrow">ORDER SUBMITTED</span>
+    <h2 id="orderSuccessTitle">Your order was submitted successfully!</h2>
+    <p>Your payment and order details are now waiting for admin review.</p>
+    <div class="order-success-details">
+      <div><span>Order Number</span><b id="successOrderNumber"></b></div>
+      <div><span>Initial Review</span><b>Usually 1–10 minutes</b></div>
+      <div><span>Selected Method ETA</span><b id="successMethodEta">Checking…</b></div>
+    </div>
+    <div class="order-success-warning">Do not create another order using the same receipt. You will receive a notification when your payment is approved or when staff needs a correction.</div>
+    <div class="button-row">
+      <a id="successOpenOrder" class="button primary" href="dashboard.html">Open My Orders</a>
+      <a class="button secondary" href="support.html">Contact Support</a>
+    </div>
+  </div>
+</div>
+
 </body></html>
