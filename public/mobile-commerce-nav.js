@@ -11,8 +11,8 @@
       ["index.html","⌂","Home"],
       ["shop.html","🛍","Order"],
       [token?"dashboard.html":"auth.html","📦","Orders"],
-      [token?"dashboard.html#notificationList":"auth.html","🔔","Alerts"],
-      [token?"dashboard.html":"auth.html","👤","Profile"]
+      [token?"support.html":"auth.html","💬","Support"],
+      [token?"profile.html":"auth.html","👤","Profile"]
     ];
     nav.innerHTML=items.map(([href,icon,label])=>{
       const target=href.split("#")[0],active=(current===target)||(current===""&&target==="index.html");

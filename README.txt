@@ -246,3 +246,7 @@ Read PERMANENT-STORAGE-SETUP-V12.txt. Create Account now changes to the customer
 
 V12.1 DASHBOARD ORDER HUB
 Logged-in customers start from dashboard.html and choose CT, NCT, Instant or Gifting. Orders open in the focused shop.html step checkout.
+
+
+V13.5 PREMIUM COMMERCE
+New pages: support.html and profile.html. Admin can manage announcements and support tickets. Separated checkout remains unchanged.

@@ -1,8 +1,8 @@
 {
   "name": "rsr-shop-v5-full-suite",
-  "version": "12.1.0",
+  "version": "13.5.0",
   "private": true,
-  "description": "RSR Shop V12.1 Dashboard Order Hub with a dedicated Start Order experience, separate purchase-method choices, focused shop page, preserved step checkout, and improved mobile customer dashboard.",
+  "description": "RSR Shop V13.5 Premium Commerce Edition with separate marketing, customer and admin experiences; dashboard-first navigation; method-specific order hub; support center; announcements; profile preferences; enhanced analytics; premium mobile UI; and preserved separated checkout.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

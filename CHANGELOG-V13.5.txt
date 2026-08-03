@@ -1,0 +1,14 @@
+RSR SHOP V13.5 — PREMIUM COMMERCE EDITION
+
+- Separate marketing, customer, support and admin experiences.
+- Premium landing-page method cards and admin-editable announcement banner.
+- Dashboard-first customer experience preserved.
+- Dedicated support center with private customer tickets and admin replies.
+- Customer profile preferences: language, payment, method, timezone and saved Roblox username.
+- Admin announcement manager.
+- Admin support-ticket manager with priority and status.
+- Mobile navigation now includes Support and Profile.
+- Enhanced analytics include open support tickets and active announcements.
+- Preserved focused shop.html and separated order wizard:
+  Method → Account & Amount → Game Pass for CT/NCT → Payment & Receipt.
+- Preserved V12 storage status, backups, exports and account-aware navigation.

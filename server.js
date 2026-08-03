@@ -240,6 +240,58 @@ CREATE TABLE IF NOT EXISTS message_templates (
   updated_at TEXT NOT NULL
 );
 
+
+CREATE TABLE IF NOT EXISTS customer_preferences (
+  user_id TEXT PRIMARY KEY,
+  preferred_language TEXT,
+  preferred_payment TEXT,
+  preferred_method TEXT,
+  saved_roblox_username TEXT,
+  saved_roblox_user_id TEXT,
+  timezone TEXT,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS announcements (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  level TEXT NOT NULL DEFAULT 'info',
+  starts_at TEXT,
+  ends_at TEXT,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS support_tickets (
+  id TEXT PRIMARY KEY,
+  customer_id TEXT NOT NULL,
+  order_id TEXT,
+  category TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Open',
+  priority TEXT NOT NULL DEFAULT 'Normal',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY(customer_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS support_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ticket_id TEXT NOT NULL,
+  sender_type TEXT NOT NULL,
+  message TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY(ticket_id) REFERENCES support_tickets(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_tickets_customer ON support_tickets(customer_id, updated_at);
+CREATE INDEX IF NOT EXISTS idx_ticket_messages ON support_messages(ticket_id, id);
+CREATE INDEX IF NOT EXISTS idx_announcements_window ON announcements(enabled, starts_at, ends_at);
+
 CREATE TABLE IF NOT EXISTS translation_overrides (
   language TEXT NOT NULL,
   source_text TEXT NOT NULL,
@@ -493,6 +545,16 @@ function settingsObject() {
     stock: {
       lowThreshold: Number(setting("low_stock_threshold") || 5000)
     },
+    announcement: (() => {
+      try {
+        const row=db.prepare(`SELECT id,title,message,level FROM announcements
+          WHERE enabled=1
+          AND (starts_at IS NULL OR datetime(starts_at)<=datetime('now'))
+          AND (ends_at IS NULL OR datetime(ends_at)>=datetime('now'))
+          ORDER BY created_at DESC LIMIT 1`).get();
+        return row || null;
+      } catch { return null; }
+    })(),
     operations: {
       ordersEnabled: setting("orders_enabled") !== "false",
       methods: {
@@ -519,6 +581,17 @@ function notifyUser(userId, orderId, type, title, message) {
 }
 function templateFor(key) { return db.prepare("SELECT * FROM message_templates WHERE key=?").get(key) || null; }
 function receiptHash(filePath) { return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex"); }
+
+function ticketForCustomer(id,customerId){
+  return db.prepare("SELECT * FROM support_tickets WHERE id=? AND customer_id=?").get(id,customerId);
+}
+function ticketPublic(row){
+  if(!row)return null;
+  return {
+    id:row.id,orderId:row.order_id,category:row.category,subject:row.subject,
+    status:row.status,priority:row.priority,createdAt:row.created_at,updatedAt:row.updated_at
+  };
+}
 function appendRiskFlag(existing, flag) {
   const flags = new Set(String(existing || "").split(",").map(x=>x.trim()).filter(Boolean));
   flags.add(flag); return [...flags].join(",");
@@ -851,7 +924,7 @@ app.get("/api/health",async(_,res)=>{
   const ok=databaseOk;
   res.status(ok?200:503).json({
     ok,
-    version:"V12 Permanent Commerce Edition",
+    version:"V13.5 Premium Commerce Edition",
     server:"online",
     database:databaseOk?"online":"unavailable",
     email:{enabled:EMAIL_ENABLED,online:emailOk,message:emailMessage},
@@ -1554,7 +1627,11 @@ app.get("/api/admin/analytics",requireAdmin,(req,res)=>{
   const submitAttempts=db.prepare("SELECT COUNT(*) count FROM site_events WHERE event_type='order_submit_attempt' AND created_at>=datetime('now','-30 days')").get().count;
   const repeatCustomers=db.prepare("SELECT COUNT(*) count FROM (SELECT customer_id FROM orders WHERE status='Completed' GROUP BY customer_id HAVING COUNT(*)>1)").get().count;
   const avgDelivery=db.prepare("SELECT COALESCE(AVG((julianday(completed_at)-julianday(created_at))*1440),0) minutes FROM orders WHERE completed_at IS NOT NULL").get().minutes;
-  res.json({totals:{...totals,completionRate},daily,methods,payments,statuses,last7,funnel:{visitors,checkoutStarts,submitAttempts,conversionRate:visitors?Number(totals.orders||0)/visitors*100:0},repeatCustomers,averageDeliveryMinutes:avgDelivery});
+  const supportOpen=db.prepare("SELECT COUNT(*) count FROM support_tickets WHERE status NOT IN ('Resolved','Closed')").get().count;
+  const announcementsActive=db.prepare(`SELECT COUNT(*) count FROM announcements WHERE enabled=1 AND (starts_at IS NULL OR datetime(starts_at)<=datetime('now')) AND (ends_at IS NULL OR datetime(ends_at)>=datetime('now'))`).get().count;
+  res.json({totals:{...totals,completionRate},daily,methods,payments,statuses,last7,
+    funnel:{visitors,checkoutStarts,submitAttempts,conversionRate:visitors?Number(totals.orders||0)/visitors*100:0},
+    repeatCustomers,averageDeliveryMinutes:avgDelivery,supportOpen,announcementsActive});
 });
 
 
@@ -1730,6 +1807,141 @@ app.get("/api/admin/operations",requireAdmin,(req,res)=>{
   res.json({overdue,lowStock:Number(setting("instant_stock")||0)<=Number(setting("low_stock_threshold")||5000),instantStock:Number(setting("instant_stock")||0)});
 });
 
+
+// V13.5 customer preferences.
+app.get("/api/customer/preferences",requireCustomer,(req,res)=>{
+  const row=db.prepare("SELECT * FROM customer_preferences WHERE user_id=?").get(req.customer.id) || {};
+  res.json({preferences:{
+    preferredLanguage:row.preferred_language||"",
+    preferredPayment:row.preferred_payment||"",
+    preferredMethod:row.preferred_method||"",
+    savedRobloxUsername:row.saved_roblox_username||"",
+    savedRobloxUserId:row.saved_roblox_user_id||"",
+    timezone:row.timezone||""
+  }});
+});
+app.patch("/api/customer/preferences",requireCustomer,(req,res)=>{
+  const allowedPayment=["","GCash","GoTyme","PayPal","Wise","Payoneer"];
+  const allowedMethod=["","ct","nct","instant","gifting"];
+  const language=String(req.body.preferredLanguage||"").slice(0,10);
+  const payment=String(req.body.preferredPayment||"");
+  const method=String(req.body.preferredMethod||"");
+  const username=String(req.body.savedRobloxUsername||"").trim().slice(0,50);
+  const userId=String(req.body.savedRobloxUserId||"").trim().slice(0,30);
+  const timezone=String(req.body.timezone||"").trim().slice(0,80);
+  if(!allowedPayment.includes(payment)||!allowedMethod.includes(method))return res.status(400).json({error:"Invalid preference."});
+  db.prepare(`INSERT INTO customer_preferences(user_id,preferred_language,preferred_payment,preferred_method,saved_roblox_username,saved_roblox_user_id,timezone,updated_at)
+    VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET
+    preferred_language=excluded.preferred_language,preferred_payment=excluded.preferred_payment,
+    preferred_method=excluded.preferred_method,saved_roblox_username=excluded.saved_roblox_username,
+    saved_roblox_user_id=excluded.saved_roblox_user_id,timezone=excluded.timezone,updated_at=excluded.updated_at`)
+    .run(req.customer.id,language,payment,method,username,userId,timezone,nowIso());
+  audit("customer_preferences_updated",req.customer.id);
+  res.json({ok:true});
+});
+
+// V13.5 integrated support center.
+app.get("/api/customer/tickets",requireCustomer,(req,res)=>{
+  const tickets=db.prepare("SELECT * FROM support_tickets WHERE customer_id=? ORDER BY updated_at DESC").all(req.customer.id).map(ticketPublic);
+  res.json({tickets});
+});
+app.post("/api/customer/tickets",requireCustomer,(req,res)=>{
+  const category=String(req.body.category||"General Question");
+  const subject=String(req.body.subject||"").trim().slice(0,120);
+  const message=String(req.body.message||"").trim().slice(0,3000);
+  const orderNumber=String(req.body.orderNumber||"").trim();
+  const allowed=["Payment","Order","Refund","Technical","General Question"];
+  if(!allowed.includes(category)||subject.length<3||message.length<5)return res.status(400).json({error:"Complete the ticket subject and message."});
+  let orderId=null;
+  if(orderNumber){
+    const order=orderForCustomer(orderNumber,req.customer.id);
+    if(!order)return res.status(404).json({error:"Order number not found."});
+    orderId=order.id;
+  }
+  const id=crypto.randomUUID(),created=nowIso();
+  db.prepare("INSERT INTO support_tickets(id,customer_id,order_id,category,subject,status,priority,created_at,updated_at) VALUES (?,?,?,?,?,'Open','Normal',?,?)")
+    .run(id,req.customer.id,orderId,category,subject,created,created);
+  db.prepare("INSERT INTO support_messages(ticket_id,sender_type,message,created_at) VALUES (?,?,?,?)").run(id,"customer",message,created);
+  audit("support_ticket_created",`${id}: ${category}`);
+  res.status(201).json({ticket:ticketPublic(db.prepare("SELECT * FROM support_tickets WHERE id=?").get(id))});
+});
+app.get("/api/customer/tickets/:id",requireCustomer,(req,res)=>{
+  const ticket=ticketForCustomer(req.params.id,req.customer.id);
+  if(!ticket)return res.status(404).json({error:"Ticket not found."});
+  const messages=db.prepare("SELECT id,sender_type AS senderType,message,created_at AS createdAt FROM support_messages WHERE ticket_id=? ORDER BY id").all(ticket.id);
+  res.json({ticket:ticketPublic(ticket),messages});
+});
+app.post("/api/customer/tickets/:id/messages",requireCustomer,(req,res)=>{
+  const ticket=ticketForCustomer(req.params.id,req.customer.id);
+  if(!ticket)return res.status(404).json({error:"Ticket not found."});
+  if(["Resolved","Closed"].includes(ticket.status))return res.status(400).json({error:"This ticket is closed."});
+  const message=String(req.body.message||"").trim().slice(0,3000);
+  if(message.length<1)return res.status(400).json({error:"Message is empty."});
+  db.prepare("INSERT INTO support_messages(ticket_id,sender_type,message,created_at) VALUES (?,?,?,?)").run(ticket.id,"customer",message,nowIso());
+  db.prepare("UPDATE support_tickets SET status='Open',updated_at=? WHERE id=?").run(nowIso(),ticket.id);
+  res.json({ok:true});
+});
+
+// V13.5 announcement admin.
+app.get("/api/admin/announcements",requireAdmin,(_,res)=>res.json({announcements:db.prepare("SELECT * FROM announcements ORDER BY created_at DESC").all()}));
+app.post("/api/admin/announcements",requireAdmin,(req,res)=>{
+  const title=String(req.body.title||"").trim().slice(0,120);
+  const message=String(req.body.message||"").trim().slice(0,800);
+  const level=String(req.body.level||"info");
+  if(!title||!message||!["info","success","warning","danger"].includes(level))return res.status(400).json({error:"Complete the announcement."});
+  const id=crypto.randomUUID(),created=nowIso();
+  db.prepare("INSERT INTO announcements(id,title,message,level,starts_at,ends_at,enabled,created_at,updated_at) VALUES (?,?,?,?,?,?,1,?,?)")
+    .run(id,title,message,level,req.body.startsAt||null,req.body.endsAt||null,created,created);
+  audit("announcement_created",title);res.status(201).json({ok:true,id});
+});
+app.patch("/api/admin/announcements/:id",requireAdmin,(req,res)=>{
+  const row=db.prepare("SELECT * FROM announcements WHERE id=?").get(req.params.id);
+  if(!row)return res.status(404).json({error:"Announcement not found."});
+  const enabled=req.body.enabled===undefined?row.enabled:(req.body.enabled?1:0);
+  db.prepare("UPDATE announcements SET title=?,message=?,level=?,starts_at=?,ends_at=?,enabled=?,updated_at=? WHERE id=?")
+    .run(String(req.body.title??row.title).slice(0,120),String(req.body.message??row.message).slice(0,800),
+      String(req.body.level??row.level),req.body.startsAt??row.starts_at,req.body.endsAt??row.ends_at,enabled,nowIso(),row.id);
+  audit("announcement_updated",row.id);res.json({ok:true});
+});
+app.delete("/api/admin/announcements/:id",requireAdmin,(req,res)=>{
+  db.prepare("DELETE FROM announcements WHERE id=?").run(req.params.id);
+  audit("announcement_deleted",req.params.id);res.json({ok:true});
+});
+
+// V13.5 support admin.
+app.get("/api/admin/tickets",requireAdmin,(req,res)=>{
+  const tickets=db.prepare(`SELECT t.*,u.full_name,u.email,o.order_number FROM support_tickets t
+    JOIN users u ON u.id=t.customer_id LEFT JOIN orders o ON o.id=t.order_id
+    ORDER BY CASE t.priority WHEN 'Urgent' THEN 1 WHEN 'High' THEN 2 ELSE 3 END,t.updated_at DESC`).all();
+  res.json({tickets});
+});
+app.get("/api/admin/tickets/:id",requireAdmin,(req,res)=>{
+  const ticket=db.prepare(`SELECT t.*,u.full_name,u.email,o.order_number FROM support_tickets t
+    JOIN users u ON u.id=t.customer_id LEFT JOIN orders o ON o.id=t.order_id WHERE t.id=?`).get(req.params.id);
+  if(!ticket)return res.status(404).json({error:"Ticket not found."});
+  const messages=db.prepare("SELECT id,sender_type AS senderType,message,created_at AS createdAt FROM support_messages WHERE ticket_id=? ORDER BY id").all(ticket.id);
+  res.json({ticket,messages});
+});
+app.post("/api/admin/tickets/:id/messages",requireAdmin,(req,res)=>{
+  const ticket=db.prepare("SELECT * FROM support_tickets WHERE id=?").get(req.params.id);
+  if(!ticket)return res.status(404).json({error:"Ticket not found."});
+  const message=String(req.body.message||"").trim().slice(0,3000);
+  if(!message)return res.status(400).json({error:"Message is empty."});
+  db.prepare("INSERT INTO support_messages(ticket_id,sender_type,message,created_at) VALUES (?,?,?,?)").run(ticket.id,"admin",message,nowIso());
+  db.prepare("UPDATE support_tickets SET status='Waiting for Customer',updated_at=? WHERE id=?").run(nowIso(),ticket.id);
+  notifyUser(ticket.customer_id,ticket.order_id,"support","Support replied",message);
+  audit("support_reply_sent",ticket.id);res.json({ok:true});
+});
+app.patch("/api/admin/tickets/:id",requireAdmin,(req,res)=>{
+  const ticket=db.prepare("SELECT * FROM support_tickets WHERE id=?").get(req.params.id);
+  if(!ticket)return res.status(404).json({error:"Ticket not found."});
+  const status=String(req.body.status||ticket.status),priority=String(req.body.priority||ticket.priority);
+  if(!["Open","Waiting for Customer","Resolved","Closed"].includes(status)||!["Normal","High","Urgent"].includes(priority))return res.status(400).json({error:"Invalid ticket update."});
+  db.prepare("UPDATE support_tickets SET status=?,priority=?,updated_at=? WHERE id=?").run(status,priority,nowIso(),ticket.id);
+  notifyUser(ticket.customer_id,ticket.order_id,"support","Support ticket updated",`Your ticket is now ${status}.`);
+  audit("support_ticket_updated",`${ticket.id}: ${status}/${priority}`);res.json({ok:true});
+});
+
 app.get("/api/admin/audit",requireAdmin,(req,res)=>res.json({entries:db.prepare("SELECT * FROM admin_audit ORDER BY id DESC LIMIT 200").all()}));
 app.post("/api/admin/backup",requireAdmin,async(req,res)=>{try{const filename=await createBackupNow();audit("manual_backup",filename);res.json({ok:true,filename});}catch{res.status(500).json({error:"Backup failed."});}});
 
@@ -1747,7 +1959,7 @@ app.use((error,_,res,__)=>{
 
 const HOST = process.env.HOST || "0.0.0.0";
 const server = app.listen(PORT, HOST, ()=>{
-  console.log(`RSR Shop V12 Permanent Commerce Edition listening on http://${HOST}:${PORT}`);
+  console.log(`RSR Shop V13.5 Premium Commerce Edition listening on http://${HOST}:${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Uploads: ${UPLOADS_DIR}`);
   console.log(`Homepage file: ${INDEX_FILE} (${fs.existsSync(INDEX_FILE) ? "found" : "MISSING"})`);
