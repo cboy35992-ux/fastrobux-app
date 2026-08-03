@@ -1,0 +1,7 @@
+RSR Shop V17.0
+- Complete purple glass dashboard redesign inspired by supplied reference.
+- Responsive customer and admin shell.
+- True step-by-step order wizard.
+- Fixed always-visible Back/Next actions on iOS and Android.
+- CT/NCT include Game Pass step; Instant and Gifting use method-specific flow.
+- Original server, admin APIs, order storage, receipts and clear-orders preserved.

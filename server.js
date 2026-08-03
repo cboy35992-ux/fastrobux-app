@@ -731,8 +731,7 @@ function serializeOrder(row, includePrivate=false) {
     adminVerifiedAmount: row.admin_verified_amount,
     adminVerifiedReference: row.admin_verified_reference,
     deliveryStartedAt: row.delivery_started_at,
-    completedAt: row.completed_at,
-    hasReceipt: Boolean(row.receipt_filename)
+    completedAt: row.completed_at
   };
   if (includePrivate) {
     result.senderName = row.sender_name;
@@ -1293,12 +1292,8 @@ app.post("/api/promo/preview",requireCustomer,(req,res)=>{
 app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),async(req,res)=>{
   try{
     releaseExpiredReservations();
+    if(!req.file)return res.status(400).json({error:"Upload your payment receipt."});
     const body=req.body;
-    const evidenceType=String(body.evidenceType||"photo").toLowerCase();
-    const paymentReference=String(body.referenceNumber||"").trim();
-    if(!["photo","reference"].includes(evidenceType))throw new Error("Choose a valid payment proof type.");
-    if(evidenceType==="photo"&&!req.file)throw new Error("Upload your payment receipt photo.");
-    if(evidenceType==="reference"&&paymentReference.length<5)throw new Error("Enter the complete payment reference number. Incorrect or unverifiable references may be declined.");
     const cfg=settingsObject();
     const methodKey=String(body.methodKey||"");
     if(!["ct","nct","instant","gifting"].includes(methodKey))throw new Error("Invalid order method.");
@@ -1357,15 +1352,11 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
     }
 
 
-    const currentReceiptHash = req.file ? receiptHash(req.file.path) : null;
+    const currentReceiptHash = receiptHash(req.file.path);
     let riskFlags = "";
-    if(currentReceiptHash){
-      const duplicateReceipt = db.prepare("SELECT order_number FROM orders WHERE receipt_hash=? LIMIT 1").get(currentReceiptHash);
-      if (duplicateReceipt) riskFlags = appendRiskFlag(riskFlags, `duplicate-receipt:${duplicateReceipt.order_number}`);
-    }
-    const duplicateReference = paymentReference
-      ? db.prepare("SELECT order_number FROM orders WHERE reference_number=? LIMIT 1").get(paymentReference)
-      : null;
+    const duplicateReceipt = db.prepare("SELECT order_number FROM orders WHERE receipt_hash=? LIMIT 1").get(currentReceiptHash);
+    if (duplicateReceipt) riskFlags = appendRiskFlag(riskFlags, `duplicate-receipt:${duplicateReceipt.order_number}`);
+    const duplicateReference = db.prepare("SELECT order_number FROM orders WHERE reference_number=? LIMIT 1").get(String(body.referenceNumber||"").trim());
     if (duplicateReference) riskFlags = appendRiskFlag(riskFlags, `duplicate-reference:${duplicateReference.order_number}`);
 
     const id=crypto.randomUUID(),number=makeOrderNumber(),privateToken=crypto.randomBytes(24).toString("hex");
@@ -1390,7 +1381,7 @@ app.post("/api/orders",orderLimiter,requireCustomer,upload.single("receipt"),asy
         String(body.robloxUserId||""),String(body.username||""),String(body.robloxDisplayName||body.username||""),
         String(body.robloxAvatarUrl||""),String(body.gameName||""),String(body.itemName||""),
         verifiedGamePass?.id||null,verifiedGamePass?.url||null,verifiedGamePass?.name||null,verifiedGamePass?.actualPrice||null,verifiedGamePass?created:null,
-        req.file?.filename||"",currentReceiptHash,riskFlags,"Not reviewed",reserved,reservationExpiresAt,created,created
+        req.file.filename,currentReceiptHash,riskFlags,"Not reviewed",reserved,reservationExpiresAt,created,created
       );
       db.prepare("INSERT INTO order_history(order_id,status,created_at) VALUES (?,?,?)").run(id,"Pending Payment Review",created);
       db.prepare("INSERT INTO messages(order_id,sender_type,text,customer_read,admin_read,created_at) VALUES (?,?,?,?,?,?)")
@@ -1490,12 +1481,8 @@ app.get("/api/admin/order-message-images/:messageId",requireAdmin,(req,res)=>{
 app.get("/api/orders/:number/receipt",requireCustomer,(req,res)=>{
   const order=orderForCustomer(req.params.number,req.customer.id);
   if(!order)return res.status(404).json({error:"Order not found."});
-  if(!order.receipt_filename)return res.status(404).json({error:"This order uses a payment reference instead of a receipt photo."});
   const file=path.join(UPLOADS_DIR,order.receipt_filename);
   if(!fs.existsSync(file))return res.status(404).json({error:"Receipt file is unavailable."});
-  res.set("Cache-Control","private, no-store");
-  res.set("Content-Disposition","inline");
-  res.type(path.extname(file));
   res.sendFile(file);
 });
 
@@ -1548,12 +1535,8 @@ app.get("/api/admin/orders/:number",requireAdmin,(req,res)=>{
 app.get("/api/admin/orders/:number/receipt",requireAdmin,(req,res)=>{
   const order=db.prepare("SELECT * FROM orders WHERE order_number=?").get(req.params.number);
   if(!order)return res.status(404).json({error:"Order not found."});
-  if(!order.receipt_filename)return res.status(404).json({error:"This order uses a payment reference instead of a receipt photo."});
   const file=path.join(UPLOADS_DIR,order.receipt_filename);
-  if(!fs.existsSync(file))return res.status(404).json({error:"Receipt file is unavailable. This usually means temporary storage was cleared after a redeploy."});
-  res.set("Cache-Control","private, no-store");
-  res.set("Content-Disposition","inline");
-  res.type(path.extname(file));
+  if(!fs.existsSync(file))return res.status(404).json({error:"Receipt file is unavailable."});
   res.sendFile(file);
 });
 

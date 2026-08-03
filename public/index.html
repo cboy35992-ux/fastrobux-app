@@ -183,50 +183,12 @@
       <div><strong>✓ Keep your receipt</strong><span>Upload a clear PNG or JPG image.</span></div>
       <div><strong>✓ Never share passwords</strong><span>Reck Shop never asks for your Roblox password.</span></div>
     </div>
-    <label>Sender Name<input id="senderName" placeholder="Name used for payment" autocomplete="name"></label>
-
-    <div class="payment-proof-choice" role="radiogroup" aria-label="Choose one payment proof">
-      <div class="proof-choice-heading">
-        <h3>Choose one payment proof</h3>
-        <p>Submit either a receipt photo or the transaction reference number. You do not need both.</p>
-      </div>
-      <div class="evidence-choice-grid">
-        <label class="evidence-option active">
-          <input type="radio" name="evidenceType" value="photo" checked>
-          <span class="evidence-icon">▣</span>
-          <b>Receipt Photo</b>
-          <small>Upload a clear successful-payment screenshot.</small>
-        </label>
-        <label class="evidence-option">
-          <input type="radio" name="evidenceType" value="reference">
-          <span class="evidence-icon">#</span>
-          <b>Reference Number</b>
-          <small>Enter the complete transaction reference.</small>
-        </label>
-      </div>
+    <div class="two-columns">
+      <label>Sender Name<input id="senderName" placeholder="Name used for payment"></label>
+      <label>Reference Number<input id="referenceNumber" placeholder="Payment reference"></label>
     </div>
-
-    <div id="photoEvidence" class="evidence-panel">
-      <label>Payment Receipt
-        <input id="receipt" type="file" accept="image/png,image/jpeg,image/webp">
-      </label>
-      <div id="receiptPreview" class="receipt-local-preview hidden">
-        <img id="receiptPreviewImage" alt="Selected payment receipt preview">
-        <div><b>Receipt ready</b><span>The admin will receive this image with your order.</span><button id="removeReceipt" type="button" class="button secondary">Remove photo</button></div>
-      </div>
-      <p class="proof-help">Make sure the image clearly shows the payment status, exact amount, date, and sender information.</p>
-    </div>
-
-    <div id="referenceEvidence" class="evidence-panel hidden">
-      <label>Transaction Reference Number
-        <input id="referenceNumber" placeholder="Example: 1234 5678 9012" inputmode="text" autocomplete="off" maxlength="120">
-      </label>
-      <div class="reference-warning" role="note">
-        <strong>Important:</strong> Enter the complete and correct reference from your successful transaction. Incorrect, incomplete, reused, fake, or unverifiable references may cause the order to be declined or ignored.
-      </div>
-    </div>
-
-    <label class="confirm"><input id="confirm" type="checkbox"> I confirm the Roblox account and payment proof are correct.</label>
+    <label>Payment Receipt<input id="receipt" type="file" accept="image/png,image/jpeg"></label>
+    <label class="confirm"><input id="confirm" type="checkbox"> I confirm the Roblox account and payment information are correct.</label>
     <button id="submitOrder" class="button primary full">Submit Order</button>
     <p id="submitMessage" class="message"></p>
   </section>
